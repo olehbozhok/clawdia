@@ -1,0 +1,19 @@
+# MCP Server Configuration
+# Supported transport types: stdio, http
+
+servers:
+  filesystem:
+    transport: stdio
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "."
+    env: {}
+
+  # Example: HTTP-based MCP server
+  # remote-tools:
+  #   transport: http
+  #   url: http://localhost:8080/mcp
+  #   headers:
+  #     Authorization: "Bearer ${MCP_TOKEN}"
