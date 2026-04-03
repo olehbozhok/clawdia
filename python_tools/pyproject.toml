@@ -10,4 +10,10 @@ dependencies = [
     "langchain-mcp-adapters>=0.1",
     "python-dotenv>=1.1",
     "langchain-deepseek>=1.0.1",
+    "langchain>=1.2.15",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
 ]

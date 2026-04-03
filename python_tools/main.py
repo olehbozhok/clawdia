@@ -5,26 +5,27 @@ import os
 
 from langchain_deepseek import ChatDeepSeek
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.prebuilt import create_react_agent
+from langchain_mcp_adapters.sessions import Connection, StdioConnection
+from langchain.agents import create_agent
 from pydantic import SecretStr
 
 load_dotenv()
 
 llm = ChatDeepSeek(
     model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-    api_key=SecretStr(str(os.getenv("DEEPSEEK_API_KEY"))),
+    api_key=SecretStr(os.environ["DEEPSEEK_API_KEY"]),
 )
 
-MCP_SERVERS = {
-    "filesystem": {
-        "transport": "stdio",
-        "command": "npx",
-        "args": [
+MCP_SERVERS: dict[str, Connection] = {
+    "filesystem": StdioConnection(
+        transport="stdio",
+        command="npx",
+        args=[
             "-y",
             "@modelcontextprotocol/server-filesystem",
-            os.path.expanduser("~/work"),
+            ".",
         ],
-    },
+    ),
 }
 
 
@@ -45,18 +46,17 @@ async def main():
                 print(f"    description: {tool.description}")
                 print(f"    inputSchema: {json.dumps(tool.inputSchema, indent=6)}")
 
-    # agent = create_react_agent(
-    #     llm.bind_tools(tools, parallel_tool_calls=False),
-    #     tools,
-    # )
+    agent = create_agent(llm, tools)
 
-    # print("Chat with DeepSeek + MCP (type 'quit' to exit)")
-    # while True:
-    #     user_input = input("\nYou: ")
-    #     if user_input.strip().lower() in ("quit", "exit"):
-    #         break
-    #     result = await agent.ainvoke({"messages": [("human", user_input)]})
-    #     print(f"\nAssistant: {result['messages'][-1].content}")
+    print("Chat with DeepSeek + MCP (type 'quit' to exit)")
+    while True:
+        user_input = input("\nYou: ")
+        if user_input.strip().lower() in ("quit", "exit"):
+            break
+        result = await agent.ainvoke(
+            {"messages": [{"role": "user", "content": user_input}]}
+        )
+        print(f"\nAssistant: {result['messages'][-1].content}")
 
 
 if __name__ == "__main__":
