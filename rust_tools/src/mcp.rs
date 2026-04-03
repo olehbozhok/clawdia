@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::Path;
 
 use rmcp::ServiceExt;
 use rmcp::model::Tool;
@@ -75,12 +75,10 @@ async fn connect_server(cfg: &McpServerConfig) -> Result<McpRunning, Box<dyn std
 
 /// Load MCP config and connect to all servers.
 /// Returns collected (ServerSink, Tools) pairs and running services to keep alive.
-pub async fn connect_all()
--> Result<(Vec<(ServerSink, Vec<Tool>)>, Vec<McpRunning>), Box<dyn std::error::Error>> {
-    let config_path = std::env::var("MCP_CONFIG")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("mcp_servers.yaml"));
-    let config: Config = serde_yaml::from_str(&std::fs::read_to_string(&config_path)?)?;
+pub async fn connect_all(
+    config_path: &Path,
+) -> Result<(Vec<(ServerSink, Vec<Tool>)>, Vec<McpRunning>), Box<dyn std::error::Error>> {
+    let config: Config = serde_yaml::from_str(&std::fs::read_to_string(config_path)?)?;
 
     let mut server_tools: Vec<(ServerSink, Vec<Tool>)> = Vec::new();
     let mut running_services: Vec<McpRunning> = Vec::new();

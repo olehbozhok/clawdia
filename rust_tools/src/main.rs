@@ -1,6 +1,7 @@
 mod mcp;
 
 use std::io::{self, BufRead, Write};
+use std::path::PathBuf;
 
 use rig::client::CompletionClient;
 use rig::completion::Prompt;
@@ -11,13 +12,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
     dotenvy::dotenv().ok();
 
-    // Connect all MCP servers
-    let (server_tools, running_services) = mcp::connect_all().await?;
-
-    // Initialize DeepSeek client
+    // Read all environment variables upfront
+    let mcp_config_path = std::env::var("MCP_CONFIG")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("mcp_servers.yaml"));
     let api_key = std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY must be set");
     let model_name =
         std::env::var("DEEPSEEK_MODEL").unwrap_or_else(|_| "deepseek-chat".into());
+
+    // Connect all MCP servers
+    let (server_tools, running_services) = mcp::connect_all(&mcp_config_path).await?;
+
+    // Initialize DeepSeek client
     let client = deepseek::Client::new(&api_key)?;
 
     // Build agent with all MCP tools
