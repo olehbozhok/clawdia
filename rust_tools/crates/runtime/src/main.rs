@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read all environment variables upfront
     let mcp_config_path = std::env::var("MCP_CONFIG")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("mcp_servers.yaml"));
+        .unwrap_or_else(|_| PathBuf::from("config/mcp_servers.yaml"));
     let api_key = std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY must be set");
     let model_name =
         std::env::var("DEEPSEEK_MODEL").unwrap_or_else(|_| "deepseek-chat".into());
