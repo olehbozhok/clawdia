@@ -14,6 +14,13 @@
 - When adding, removing, or renaming environment variables in code, immediately update `.env.example` to keep it in sync.
 - When writing code that reads environment variables, validate that all required variables are set and non-empty at startup. Provide a clear error message listing any missing variables.
 
+## Code Quality
+
+- Follow best practices for the language being used (idiomatic Rust, Pythonic Python, etc.).
+- Always evaluate whether a piece of functionality should be extracted into a separate module, function, or file. Consider separation of concerns, reusability, and readability.
+- Keep functions and modules focused on a single responsibility.
+- Prefer clear, descriptive naming over comments.
+
 ## Validation
 
 - Always use `uv run pyright` to validate Python code instead of running the app, when possible.
