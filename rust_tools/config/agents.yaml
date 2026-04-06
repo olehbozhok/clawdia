@@ -10,6 +10,10 @@ orchestrator:
   permitted_actions:
     - researcher
     - media_creator
+    - read_file
+    - list_directory
+    - create_directory
+    - search_files
 
 agents:
   researcher:
@@ -19,7 +23,13 @@ agents:
       You are a research specialist focused on marine conservation and bottom trawling.
       When given a topic, search only approved sources, extract factual claims,
       and attach citations to every claim. Be thorough and evidence-based.
-    permitted_actions: []
+    permitted_actions:
+      - read_file
+      - list_directory
+      - create_directory
+      - search_files
+      - edit_file
+      - write_file
 
   media_creator:
     name: media_creator
