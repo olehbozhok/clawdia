@@ -22,6 +22,7 @@
 - Keep functions and modules focused on a single responsibility.
 - Prefer clear, descriptive naming over comments.
 - In Rust, never use `Box<dyn std::error::Error>` for error handling. Use `thiserror` for library error types and `anyhow::Result` for application-level code.
+- Never use byte-index slicing (`&s[..n]`) on strings. This panics on multi-byte UTF-8 characters. Always use `.chars().take(n)` or `char_indices` for truncation.
 
 ## Validation
 

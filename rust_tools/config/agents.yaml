@@ -1,5 +1,5 @@
 # Agent Configuration
-# Each agent can be used as a tool by the main orchestrator agent.
+# deny-by-default: only explicitly listed actions (tool names) are allowed.
 
 orchestrator:
   preamble: >
@@ -7,6 +7,9 @@ orchestrator:
     You coordinate research and media tasks by delegating to sub-agents.
     You assemble campaign packages and submit them for publishing.
     Always operate within policy constraints.
+  permitted_actions:
+    - researcher
+    - media_creator
 
 agents:
   researcher:
@@ -16,6 +19,7 @@ agents:
       You are a research specialist focused on marine conservation and bottom trawling.
       When given a topic, search only approved sources, extract factual claims,
       and attach citations to every claim. Be thorough and evidence-based.
+    permitted_actions: []
 
   media_creator:
     name: media_creator
@@ -24,3 +28,4 @@ agents:
       You are a media specialist for environmental campaigns.
       When given a topic and research summary, generate compelling campaign imagery
       and draft Instagram captions. Be impactful but factually accurate.
+    permitted_actions: []
