@@ -11,8 +11,9 @@ path = "src/main.rs"
 runtime = { workspace = true }
 tools = { workspace = true }
 
-rig-core = { version = "0.34", features = ["rmcp"] }
-clap = { version = "4", features = ["derive", "env"] }
+rig-core = { workspace = true }
+rmcp = { workspace = true }
+clap = { workspace = true }
 tokio = { workspace = true }
 tracing-subscriber = { workspace = true }
-dotenvy = "0.15"
+dotenvy = { workspace = true }

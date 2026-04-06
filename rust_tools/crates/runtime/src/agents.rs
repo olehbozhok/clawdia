@@ -6,30 +6,25 @@ use rig::agent::Agent;
 use rig::client::CompletionClient;
 use rig::completion::{CompletionModel, Prompt, PromptError, ToolDefinition};
 use rig::tool::Tool;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use tools::authz::{AuditEntry, AuthorizationDecision, Principal, PrincipalType};
 
 use crate::authz_hook::AuthzHook;
+use crate::mcp::McpServer;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use tools::authz::{AuditEntry, AuthorizationDecision, Principal};
 
 // ── Config types ──
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    pub orchestrator: OrchestratorConfig,
+    pub orchestrator: AgentConfig,
     pub agents: HashMap<String, AgentConfig>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct OrchestratorConfig {
-    pub preamble: String,
-    #[serde(default)]
-    pub permitted_actions: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AgentConfig {
     pub name: String,
+    #[serde(default)]
     pub description: String,
     pub preamble: String,
     #[serde(default)]
@@ -39,6 +34,135 @@ pub struct AgentConfig {
 pub fn load_config(path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(path)?;
     Ok(serde_yaml::from_str(&content)?)
+}
+
+// ── Tool filtering ──
+
+/// Filter MCP tools to only include those in the permitted actions list.
+pub fn filter_tools(
+    tools: Vec<rmcp::model::Tool>,
+    permitted: &[String],
+) -> Vec<rmcp::model::Tool> {
+    tools
+        .into_iter()
+        .filter(|t| permitted.iter().any(|p| p.as_str() == t.name.as_ref()))
+        .collect()
+}
+
+// ── Unified agent builder ──
+
+/// Build an agent with filtered MCP tools and an AuthzHook.
+/// This is the single build path for both orchestrator and sub-agents.
+pub fn build_agent<C: CompletionClient + 'static>(
+    client: &C,
+    model: &str,
+    config: &AgentConfig,
+    servers: &[McpServer],
+    audit_log: &AuditLog,
+) -> Agent<C::CompletionModel, AuthzHook> {
+    let principal = Principal {
+        id: config.name.clone(),
+        principal_type: config.name.clone(),
+        delegation_record_id: None,
+    };
+
+    let hook = AuthzHook::new(
+        principal,
+        config.permitted_actions.clone(),
+        audit_log.clone(),
+    );
+
+    let permitted = &config.permitted_actions;
+
+    let base = client
+        .agent(model)
+        .preamble(&config.preamble)
+        .name(&config.name)
+        .description(&config.description)
+        .default_max_turns(20)
+        .hook(hook);
+
+    // Attach filtered MCP tools
+    let mut server_iter = servers.iter();
+
+    if let Some(first) = server_iter.next() {
+        let filtered = filter_tools(first.tools.clone(), permitted);
+        if filtered.is_empty() && permitted.is_empty() {
+            return base.build();
+        }
+        let mut builder = base.rmcp_tools(filtered, first.sink.clone());
+        for server in server_iter {
+            builder = builder.rmcp_tools(
+                filter_tools(server.tools.clone(), permitted),
+                server.sink.clone(),
+            );
+        }
+        builder.build()
+    } else {
+        base.build()
+    }
+}
+
+/// Build the orchestrator: same as any agent, plus all sub-agents attached as tools.
+/// Sub-agents are always available to the orchestrator (no permission needed).
+pub fn build_orchestrator<C: CompletionClient + 'static>(
+    client: &C,
+    model: &str,
+    config: &Config,
+    servers: Vec<McpServer>,
+    audit_log: &AuditLog,
+) -> Agent<C::CompletionModel, AuthzHook> {
+    let principal = Principal {
+        id: config.orchestrator.name.clone(),
+        principal_type: config.orchestrator.name.clone(),
+        delegation_record_id: None,
+    };
+
+    let hook = AuthzHook::new(
+        principal,
+        config.orchestrator.permitted_actions.clone(),
+        audit_log.clone(),
+    );
+
+    let permitted = &config.orchestrator.permitted_actions;
+
+    let base = client
+        .agent(model)
+        .preamble(&config.orchestrator.preamble)
+        .name(&config.orchestrator.name)
+        .description(&config.orchestrator.description)
+        .default_max_turns(20)
+        .hook(hook);
+
+    // Attach filtered MCP tools
+    let mut groups = servers.iter();
+    let first = groups
+        .next()
+        .expect("At least one MCP server must be configured");
+
+    let mut agent_builder = base.rmcp_tools(
+        filter_tools(first.tools.clone(), permitted),
+        first.sink.clone(),
+    );
+
+    for server in groups {
+        agent_builder = agent_builder.rmcp_tools(
+            filter_tools(server.tools.clone(), permitted),
+            server.sink.clone(),
+        );
+    }
+
+    // All sub-agents are always available to the orchestrator
+    for agent_cfg in config.agents.values() {
+        let inner = build_agent(client, model, agent_cfg, &servers, audit_log);
+        let sub_agent = VerboseAgent {
+            label: agent_cfg.name.clone(),
+            inner,
+        };
+        agent_builder = agent_builder.tool(sub_agent);
+    }
+
+    agent_builder.build()
 }
 
 // ── Audit log (shared across agents) ──
@@ -87,7 +211,7 @@ pub struct AgentToolArgs {
 }
 
 /// Wraps an `Agent` to print status when the sub-agent is called.
-/// Authorization is handled by `AuthzHook` attached to the parent agent.
+/// Authorization is handled by `AuthzHook` attached to each agent.
 pub struct VerboseAgent<M: CompletionModel> {
     inner: Agent<M, AuthzHook>,
     label: String,
@@ -162,42 +286,148 @@ fn truncate(s: &str, max_chars: usize) -> String {
     }
 }
 
-// ── Builder ──
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rmcp::model::Tool as McpTool;
+    use serde_json::json;
+    use std::borrow::Cow;
+    use std::sync::Arc;
 
-pub fn build_sub_agent<C: CompletionClient>(
-    client: &C,
-    model: &str,
-    config: &AgentConfig,
-    audit_log: &AuditLog,
-) -> VerboseAgent<C::CompletionModel> {
-    let principal_type = match config.name.as_str() {
-        "researcher" => PrincipalType::ResearchSubAgent,
-        "media_creator" => PrincipalType::MediaSubAgent,
-        _ => PrincipalType::MainAgent,
-    };
+    fn make_tool(name: &str) -> McpTool {
+        McpTool {
+            name: Cow::Owned(name.to_string()),
+            title: None,
+            description: Some(Cow::Owned(format!("{name} tool"))),
+            input_schema: Arc::new(serde_json::from_value(json!({"type": "object"})).unwrap()),
+            output_schema: None,
+            annotations: None,
+            execution: None,
+            icons: None,
+            meta: None,
+        }
+    }
 
-    let principal = Principal {
-        id: config.name.clone(),
-        principal_type,
-        delegation_record_id: None,
-    };
+    fn tool_names(tools: &[McpTool]) -> Vec<String> {
+        tools.iter().map(|t| t.name.to_string()).collect()
+    }
 
-    let hook = AuthzHook::new(
-        principal,
-        config.permitted_actions.clone(),
-        audit_log.clone(),
-    );
+    // ── filter_tools ──
 
-    let inner = client
-        .agent(model)
-        .preamble(&config.preamble)
-        .name(&config.name)
-        .description(&config.description)
-        .hook(hook)
-        .build();
+    #[test]
+    fn filter_tools_keeps_only_permitted() {
+        let tools = vec![
+            make_tool("read_file"),
+            make_tool("write_file"),
+            make_tool("list_directory"),
+        ];
+        let permitted = vec!["read_file".to_string(), "list_directory".to_string()];
 
-    VerboseAgent {
-        label: config.name.clone(),
-        inner,
+        let filtered = filter_tools(tools, &permitted);
+        assert_eq!(tool_names(&filtered), vec!["read_file", "list_directory"]);
+    }
+
+    #[test]
+    fn filter_tools_empty_permitted_returns_nothing() {
+        let tools = vec![make_tool("read_file"), make_tool("write_file")];
+        let filtered = filter_tools(tools, &[]);
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn filter_tools_no_matching_tools_returns_empty() {
+        let tools = vec![make_tool("read_file")];
+        let permitted = vec!["write_file".to_string()];
+        let filtered = filter_tools(tools, &permitted);
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn filter_tools_preserves_tool_metadata() {
+        let tools = vec![make_tool("read_file")];
+        let permitted = vec!["read_file".to_string()];
+        let filtered = filter_tools(tools, &permitted);
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].description.as_deref(), Some("read_file tool"));
+    }
+
+    // ── config-driven filtering (unified for all agents) ──
+
+    #[test]
+    fn agent_config_filters_tools_correctly() {
+        let config = AgentConfig {
+            name: "orchestrator".into(),
+            description: String::new(),
+            preamble: String::new(),
+            permitted_actions: vec![
+                "researcher".into(),
+                "read_file".into(),
+                "list_directory".into(),
+            ],
+        };
+
+        let all_tools = vec![
+            make_tool("read_file"),
+            make_tool("write_file"),
+            make_tool("list_directory"),
+            make_tool("edit_file"),
+        ];
+
+        let filtered = filter_tools(all_tools, &config.permitted_actions);
+        assert_eq!(tool_names(&filtered), vec!["read_file", "list_directory"]);
+    }
+
+    #[test]
+    fn same_filter_works_for_sub_agent() {
+        let config = AgentConfig {
+            name: "researcher".into(),
+            description: "test".into(),
+            preamble: String::new(),
+            permitted_actions: vec!["read_file".into(), "search_files".into()],
+        };
+
+        let all_tools = vec![
+            make_tool("read_file"),
+            make_tool("write_file"),
+            make_tool("search_files"),
+            make_tool("edit_file"),
+        ];
+
+        let filtered = filter_tools(all_tools, &config.permitted_actions);
+        assert_eq!(tool_names(&filtered), vec!["read_file", "search_files"]);
+    }
+
+    #[test]
+    fn agent_with_empty_permitted_sees_no_tools() {
+        let config = AgentConfig {
+            name: "media_creator".into(),
+            description: "test".into(),
+            preamble: String::new(),
+            permitted_actions: vec![],
+        };
+
+        let all_tools = vec![make_tool("read_file"), make_tool("write_file")];
+        let filtered = filter_tools(all_tools, &config.permitted_actions);
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn agent_cannot_see_tools_not_in_permitted() {
+        let config = AgentConfig {
+            name: "researcher".into(),
+            description: "test".into(),
+            preamble: String::new(),
+            permitted_actions: vec!["read_file".into()],
+        };
+
+        let all_tools = vec![
+            make_tool("read_file"),
+            make_tool("write_file"),
+            make_tool("publish_instagram_live"),
+        ];
+
+        let filtered = filter_tools(all_tools, &config.permitted_actions);
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name.as_ref(), "read_file");
     }
 }

@@ -6,19 +6,15 @@ edition = "2024"
 [dependencies]
 tools = { workspace = true }
 
-rig-core = { version = "0.34", features = ["rmcp"] }
-rmcp = { version = "0.16", features = [
-    "client",
-    "transport-child-process",
-    "transport-streamable-http-client-reqwest",
-] }
-http = "1.4"
-reqwest = "0.13"
+rig-core = { workspace = true }
+rmcp = { workspace = true }
+http = { workspace = true }
+reqwest = { workspace = true }
 
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+schemars = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-schemars = "1.2.1"

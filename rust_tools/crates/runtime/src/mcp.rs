@@ -41,6 +41,14 @@ pub enum McpServerConfig {
 
 pub type McpRunning = RunningService<rmcp::RoleClient, ()>;
 
+/// A connected MCP server with its available tools.
+#[derive(Clone)]
+pub struct McpServer {
+    pub name: String,
+    pub sink: ServerSink,
+    pub tools: Vec<Tool>,
+}
+
 async fn connect_server(cfg: &McpServerConfig) -> Result<McpRunning, Box<dyn std::error::Error>> {
     match cfg {
         McpServerConfig::Stdio { command, args, env } => {
@@ -77,34 +85,23 @@ async fn connect_server(cfg: &McpServerConfig) -> Result<McpRunning, Box<dyn std
 /// Returns collected (ServerSink, Tools) pairs and running services to keep alive.
 pub async fn connect_all(
     config_path: &Path,
-) -> Result<(Vec<(ServerSink, Vec<Tool>)>, Vec<McpRunning>), Box<dyn std::error::Error>> {
+) -> Result<(Vec<McpServer>, Vec<McpRunning>), Box<dyn std::error::Error>> {
     let config: Config = serde_yaml::from_str(&std::fs::read_to_string(config_path)?)?;
 
-    let mut server_tools: Vec<(ServerSink, Vec<Tool>)> = Vec::new();
+    let mut servers: Vec<McpServer> = Vec::new();
     let mut running_services: Vec<McpRunning> = Vec::new();
 
-    for (_name, server_cfg) in &config.servers {
+    for (name, server_cfg) in &config.servers {
         let service = connect_server(server_cfg).await?;
-
         let tools_response = service.peer().list_tools(Default::default()).await?;
-        // print tools info
 
-        // println!("\n=== {_name} ({} tools) ===", tools_response.tools.len());
-        // for tool in &tools_response.tools {
-        //     println!("\n  {}:", tool.name);
-        //     println!(
-        //         "    description: {}",
-        //         tool.description.as_deref().unwrap_or("")
-        //     );
-        //     println!(
-        //         "    inputSchema: {}",
-        //         serde_json::to_string_pretty(&tool.input_schema)?
-        //     );
-        // }
-
-        server_tools.push((service.peer().clone(), tools_response.tools));
+        servers.push(McpServer {
+            name: name.clone(),
+            sink: service.peer().clone(),
+            tools: tools_response.tools,
+        });
         running_services.push(service);
     }
 
-    Ok((server_tools, running_services))
+    Ok((servers, running_services))
 }

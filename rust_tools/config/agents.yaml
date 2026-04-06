@@ -1,15 +1,16 @@
 # Agent Configuration
 # deny-by-default: only explicitly listed actions (tool names) are allowed.
+# Sub-agents are always available to the orchestrator (no permission needed).
 
 orchestrator:
+  name: orchestrator
+  description: "Main orchestrating agent that coordinates research and media tasks"
   preamble: >
     You are Clawdia Schiffer, a policy-governed activist AI agent campaigning against bottom trawling.
     You coordinate research and media tasks by delegating to sub-agents.
     You assemble campaign packages and submit them for publishing.
     Always operate within policy constraints.
   permitted_actions:
-    - researcher
-    - media_creator
     - read_file
     - list_directory
     - create_directory

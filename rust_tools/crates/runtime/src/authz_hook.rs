@@ -131,25 +131,12 @@ fn url_domain(s: &str) -> Option<String> {
 mod tests {
     use super::*;
     use crate::agents::AuditLog;
-    use tools::authz::{AuthorizationDecision, Principal, PrincipalType};
+    use tools::authz::{AuthorizationDecision, Principal};
 
-    fn orchestrator(permitted: &[&str]) -> AuthzHook {
+    fn make_hook(name: &str, permitted: &[&str]) -> AuthzHook {
         let principal = Principal {
-            id: "orchestrator".into(),
-            principal_type: PrincipalType::MainAgent,
-            delegation_record_id: None,
-        };
-        AuthzHook::new(
-            principal,
-            permitted.iter().map(|s| s.to_string()).collect(),
-            AuditLog::new(),
-        )
-    }
-
-    fn researcher(permitted: &[&str]) -> AuthzHook {
-        let principal = Principal {
-            id: "researcher".into(),
-            principal_type: PrincipalType::ResearchSubAgent,
+            id: name.into(),
+            principal_type: name.into(),
             delegation_record_id: None,
         };
         AuthzHook::new(
@@ -163,14 +150,14 @@ mod tests {
 
     #[test]
     fn empty_permitted_actions_denies_everything() {
-        let hook = orchestrator(&[]);
+        let hook = make_hook("orchestrator", &[]);
         let result = hook.authorize("read_file", "{}");
         assert_eq!(result.decision, AuthorizationDecision::Deny);
     }
 
     #[test]
     fn permitted_action_is_allowed() {
-        let hook = orchestrator(&["researcher", "read_file"]);
+        let hook = make_hook("orchestrator", &["researcher", "read_file"]);
         let result = hook.authorize("researcher", "{}");
         assert_eq!(result.decision, AuthorizationDecision::Allow);
         assert!(result.reason.is_none());
@@ -178,7 +165,7 @@ mod tests {
 
     #[test]
     fn unpermitted_action_is_denied() {
-        let hook = orchestrator(&["researcher", "read_file"]);
+        let hook = make_hook("orchestrator", &["researcher", "read_file"]);
         let result = hook.authorize("write_file", "{}");
         assert_eq!(result.decision, AuthorizationDecision::Deny);
         assert!(result.reason.unwrap().contains("write_file"));
@@ -186,14 +173,14 @@ mod tests {
 
     #[test]
     fn sub_agent_with_no_tools_cannot_call_anything() {
-        let hook = researcher(&[]);
+        let hook = make_hook("researcher", &[]);
         let result = hook.authorize("read_file", "{}");
         assert_eq!(result.decision, AuthorizationDecision::Deny);
     }
 
     #[test]
     fn sub_agent_confined_to_permitted_tools() {
-        let hook = researcher(&["search_sources", "fetch_article"]);
+        let hook = make_hook("researcher", &["search_sources", "fetch_article"]);
 
         assert_eq!(
             hook.authorize("search_sources", "{}").decision,
@@ -220,7 +207,7 @@ mod tests {
         let audit_log = AuditLog::new();
         let principal = Principal {
             id: "orchestrator".into(),
-            principal_type: PrincipalType::MainAgent,
+            principal_type: "orchestrator".into(),
             delegation_record_id: None,
         };
         let hook = AuthzHook::new(principal, vec!["read_file".into()], audit_log.clone());
@@ -241,7 +228,7 @@ mod tests {
         let audit_log = AuditLog::new();
         let principal = Principal {
             id: "researcher".into(),
-            principal_type: PrincipalType::ResearchSubAgent,
+            principal_type: "researcher".into(),
             delegation_record_id: None,
         };
         let hook = AuthzHook::new(principal, vec![], audit_log.clone());
@@ -250,7 +237,7 @@ mod tests {
 
         let entry = &audit_log.entries()[0];
         assert_eq!(entry.principal_id, "researcher");
-        assert_eq!(entry.principal_type, PrincipalType::ResearchSubAgent);
+        assert_eq!(entry.principal_type, "researcher");
     }
 
     // ── domain extraction ──

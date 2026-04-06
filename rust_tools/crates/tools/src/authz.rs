@@ -4,14 +4,8 @@ use uuid::Uuid;
 
 // ── Principals ──
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PrincipalType {
-    MainAgent,
-    ResearchSubAgent,
-    MediaSubAgent,
-    Human,
-}
+/// Principal type derived from agent name in config.
+pub type PrincipalType = String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Principal {

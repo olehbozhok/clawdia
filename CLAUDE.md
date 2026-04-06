@@ -21,6 +21,7 @@
 - Always evaluate whether a piece of functionality should be extracted into a separate module, function, or file. Consider separation of concerns, reusability, and readability.
 - Keep functions and modules focused on a single responsibility.
 - Prefer clear, descriptive naming over comments.
+- Prefer named structs over tuples for return types and parameters when there are 2+ fields. Tuples like `(ServerSink, Vec<Tool>)` are opaque — use a struct with named fields instead.
 - In Rust, never use `Box<dyn std::error::Error>` for error handling. Use `thiserror` for library error types and `anyhow::Result` for application-level code.
 - Never use byte-index slicing (`&s[..n]`) on strings. This panics on multi-byte UTF-8 characters. Always use `.chars().take(n)` or `char_indices` for truncation.
 
