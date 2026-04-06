@@ -1,3 +1,4 @@
+mod agents;
 mod mcp;
 
 use std::io::{self, BufRead, Write};
@@ -16,17 +17,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mcp_config_path = std::env::var("MCP_CONFIG")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("config/mcp_servers.yaml"));
+    let agents_config_path = std::env::var("AGENTS_CONFIG")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("config/agents.yaml"));
     let api_key = std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY must be set");
     let model_name =
         std::env::var("DEEPSEEK_MODEL").unwrap_or_else(|_| "deepseek-chat".into());
 
-    // Connect all MCP servers
+    // Load configs
+    let agents_config = agents::load_config(&agents_config_path)?;
     let (server_tools, running_services) = mcp::connect_all(&mcp_config_path).await?;
 
     // Initialize DeepSeek client
     let client = deepseek::Client::new(&api_key)?;
 
-    // Build agent with all MCP tools
+    // Build orchestrator agent with MCP tools
     let mut groups = server_tools.into_iter();
     let (first_peer, first_tools) = groups
         .next()
@@ -34,11 +39,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut agent_builder = client
         .agent(&model_name)
-        .preamble("You are a helpful assistant with access to MCP tools.")
+        .preamble(&agents_config.orchestrator.preamble)
         .rmcp_tools(first_tools, first_peer);
 
     for (peer, tools) in groups {
         agent_builder = agent_builder.rmcp_tools(tools, peer);
+    }
+
+    // Add sub-agents as tools
+    for agent_cfg in agents_config.agents.values() {
+        let sub_agent = agents::build_sub_agent(&client, &model_name, agent_cfg);
+        agent_builder = agent_builder.tool(sub_agent);
     }
 
     let agent = agent_builder.build();

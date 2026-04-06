@@ -21,6 +21,7 @@
 - Always evaluate whether a piece of functionality should be extracted into a separate module, function, or file. Consider separation of concerns, reusability, and readability.
 - Keep functions and modules focused on a single responsibility.
 - Prefer clear, descriptive naming over comments.
+- In Rust, never use `Box<dyn std::error::Error>` for error handling. Use `thiserror` for library error types and `anyhow::Result` for application-level code.
 
 ## Validation
 
