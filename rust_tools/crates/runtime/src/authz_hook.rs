@@ -16,6 +16,7 @@ use crate::agents::AuditLog;
 pub struct AuthzHook {
     principal: Principal,
     permitted_actions: Vec<String>,
+    sub_agent_tools: Vec<String>,
     audit_log: AuditLog,
 }
 
@@ -24,13 +25,22 @@ impl AuthzHook {
         Self {
             principal,
             permitted_actions,
+            sub_agent_tools: Vec::new(),
             audit_log,
         }
     }
 
+    /// Register sub-agent tool names that are always allowed.
+    /// Sub-agents enforce their own permissions via their own AuthzHook.
+    pub fn with_sub_agent_tools(mut self, tools: Vec<String>) -> Self {
+        self.sub_agent_tools = tools;
+        self
+    }
+
     pub fn authorize(&self, tool_name: &str, args: &str) -> AuthorizationResult {
-        // deny-by-default: only explicitly permitted tools are allowed
-        let is_permitted = self.permitted_actions.iter().any(|t| t == tool_name);
+        // deny-by-default: only explicitly permitted tools and sub-agent tools are allowed
+        let is_permitted = self.permitted_actions.iter().any(|t| t == tool_name)
+            || self.sub_agent_tools.iter().any(|t| t == tool_name);
 
         let result = if is_permitted {
             AuthorizationResult {
@@ -157,18 +167,73 @@ mod tests {
 
     #[test]
     fn permitted_action_is_allowed() {
-        let hook = make_hook("orchestrator", &["researcher", "read_file"]);
-        let result = hook.authorize("researcher", "{}");
+        let hook = make_hook("orchestrator", &["read_file"]);
+        let result = hook.authorize("read_file", "{}");
         assert_eq!(result.decision, AuthorizationDecision::Allow);
         assert!(result.reason.is_none());
     }
 
     #[test]
     fn unpermitted_action_is_denied() {
-        let hook = make_hook("orchestrator", &["researcher", "read_file"]);
+        let hook = make_hook("orchestrator", &["read_file"]);
         let result = hook.authorize("write_file", "{}");
         assert_eq!(result.decision, AuthorizationDecision::Deny);
         assert!(result.reason.unwrap().contains("write_file"));
+    }
+
+    // ── sub-agent delegation ──
+
+    fn make_hook_with_sub_agents(
+        name: &str,
+        permitted: &[&str],
+        sub_agents: &[&str],
+    ) -> AuthzHook {
+        make_hook(name, permitted).with_sub_agent_tools(
+            sub_agents.iter().map(|s| s.to_string()).collect(),
+        )
+    }
+
+    #[test]
+    fn registered_sub_agent_tool_is_allowed() {
+        let hook = make_hook_with_sub_agents(
+            "orchestrator",
+            &[],
+            &["agent_researcher", "agent_verifier"],
+        );
+        assert_eq!(
+            hook.authorize("agent_researcher", "{}").decision,
+            AuthorizationDecision::Allow
+        );
+        assert_eq!(
+            hook.authorize("agent_verifier", "{}").decision,
+            AuthorizationDecision::Allow
+        );
+    }
+
+    #[test]
+    fn unregistered_sub_agent_tool_is_denied() {
+        let hook = make_hook_with_sub_agents(
+            "orchestrator",
+            &["doc_create"],
+            &["agent_researcher"],
+        );
+        assert_eq!(
+            hook.authorize("agent_copywriter", "{}").decision,
+            AuthorizationDecision::Deny
+        );
+    }
+
+    #[test]
+    fn sub_agent_tools_do_not_bypass_regular_tool_deny() {
+        let hook = make_hook_with_sub_agents(
+            "orchestrator",
+            &[],
+            &["agent_researcher"],
+        );
+        assert_eq!(
+            hook.authorize("doc_create", "{}").decision,
+            AuthorizationDecision::Deny
+        );
     }
 
     #[test]

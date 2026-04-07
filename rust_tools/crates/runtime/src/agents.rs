@@ -118,11 +118,19 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
         delegation_record_id: None,
     };
 
+    // Collect sub-agent tool names so the AuthzHook can allow them
+    let sub_agent_tools: Vec<String> = config
+        .agents
+        .values()
+        .map(|cfg| format!("agent_{}", cfg.name))
+        .collect();
+
     let hook = AuthzHook::new(
         principal,
         config.orchestrator.permitted_actions.clone(),
         audit_log.clone(),
-    );
+    )
+    .with_sub_agent_tools(sub_agent_tools);
 
     let permitted = &config.orchestrator.permitted_actions;
 
@@ -269,10 +277,7 @@ impl<M: CompletionModel + 'static> Tool for VerboseAgent<M> {
     }
 
     fn name(&self) -> String {
-        self.inner
-            .name
-            .clone()
-            .unwrap_or_else(|| Self::NAME.to_string())
+        format!("agent_{}", self.label)
     }
 }
 
@@ -359,11 +364,7 @@ mod tests {
             name: "orchestrator".into(),
             description: String::new(),
             preamble: String::new(),
-            permitted_actions: vec![
-                "researcher".into(),
-                "read_file".into(),
-                "list_directory".into(),
-            ],
+            permitted_actions: vec!["read_file".into(), "list_directory".into()],
         };
 
         let all_tools = vec![
