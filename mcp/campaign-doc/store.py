@@ -112,9 +112,18 @@ class CampaignStore:
 
     def _next_id(self) -> str:
         self._counter += 1
-        return f"camp-{self._counter}"
+        candidate = f"camp-{self._counter}"
+        while candidate in self._campaigns:
+            self._counter += 1
+            candidate = f"camp-{self._counter}"
+        return candidate
 
     def create(self, topic: str) -> Campaign:
+        for existing in self._campaigns.values():
+            if existing.topic.lower() == topic.lower():
+                raise ValueError(
+                    f"Campaign with topic '{topic}' already exists (id={existing.id})"
+                )
         campaign = Campaign(
             id=self._next_id(),
             topic=topic,

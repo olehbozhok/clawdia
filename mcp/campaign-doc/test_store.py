@@ -22,6 +22,16 @@ def test_create_campaign() -> None:
     assert c.status == CampaignStatus.CREATED
 
 
+def test_create_duplicate_topic_raises() -> None:
+    store = CampaignStore()
+    store.create("Bottom trawling impact")
+    try:
+        store.create("bottom trawling impact")
+        assert False, "Should have raised ValueError for duplicate topic"
+    except ValueError:
+        pass
+
+
 def test_create_auto_increments() -> None:
     store = CampaignStore()
     c1 = store.create("First")
