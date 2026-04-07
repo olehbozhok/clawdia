@@ -1,0 +1,95 @@
+{
+  "id": "camp-4",
+  "topic": "Solutions and alternatives to bottom trawling: sustainable fishing practices",
+  "status": "draft_saved",
+  "statements": [
+    {
+      "id": "s1",
+      "text": "Overfishing is one of the most significant drivers of declines in ocean wildlife populations, with fully one-third of the world's assessed fisheries currently pushed beyond their biological limits according to the Food and Agriculture Organization of the United Nations.",
+      "source_url": "https://www.worldwildlife.org/threats/overfishing",
+      "source_domain": "www.worldwildlife.org",
+      "verdict": "verified",
+      "verdict_reason": "Statement accurately reflects source content: \"Fishing is one of the most significant drivers of declines in ocean wildlife populations\" and \"fully one-third of the world's assessed fisheries are currently pushed beyond their biological limits, according to the Food and Agriculture Organization of the United Nations.\"",
+      "created_at": "2026-04-07T20:52:49.155192+00:00"
+    },
+    {
+      "id": "s2",
+      "text": "Overfishing is closely tied to bycatch—the capture of unwanted sea life while fishing for a different species—which causes the needless loss of billions of fish, along with hundreds of thousands of sea turtles and cetaceans.",
+      "source_url": "https://www.worldwildlife.org/threats/overfishing",
+      "source_domain": "www.worldwildlife.org",
+      "verdict": "verified",
+      "verdict_reason": "Statement is an exact match to source content: \"Overfishing is closely tied to bycatch—the capture of unwanted sea life while fishing for a different species. This, too, is a serious marine threat that causes the needless loss of billions of fish, along with hundreds of thousands of sea turtles and cetaceans.\"",
+      "created_at": "2026-04-07T20:52:53.339656+00:00"
+    },
+    {
+      "id": "s3",
+      "text": "Today's worldwide fishing fleet is estimated to be up to two-and-a-half times the capacity needed to catch what we actually need, with subsidies being a key driver of overfishing by offsetting costs and enabling overcapacity.",
+      "source_url": "https://www.worldwildlife.org/threats/overfishing",
+      "source_domain": "www.worldwildlife.org",
+      "verdict": "verified",
+      "verdict_reason": "Statement accurately combines two points from source: \"Today's worldwide fishing fleet is estimated to be up to two-and-a-half times the capacity needed to catch what we actually need\" and \"Subsidies... are another key driver of overfishing... can lead to overcapacity of fishing vessels.\"",
+      "created_at": "2026-04-07T20:52:57.509856+00:00"
+    },
+    {
+      "id": "s4",
+      "text": "Longlining is a passive fishing technique that uses lines with baited hooks as fishing gear, which can be more selective than bottom trawling and reduces seabed damage.",
+      "source_url": "https://www.fao.org/fishery/fishtech/1010/en",
+      "source_domain": "www.fao.org",
+      "verdict": "needs_revision",
+      "verdict_reason": "The source confirms 'Longlining is a passive type of fishing technique making use of lines with baited hooks as fishing gear.' However, the comparative claim that it 'can be more selective than bottom trawling and reduces seabed damage' is not supported by this specific source. The source only describes the technique without making comparisons to bottom trawling or claims about seabed impact.",
+      "created_at": "2026-04-07T20:53:01.786176+00:00"
+    },
+    {
+      "id": "s5",
+      "text": "Scottish seining (also known as fly dragging) uses a seine net with long ropes to encircle fish, which can be less damaging to seabed habitats compared to bottom trawling when properly managed.",
+      "source_url": "https://www.fao.org/fishery/fishtech/1008/en",
+      "source_domain": "www.fao.org",
+      "verdict": "needs_revision",
+      "verdict_reason": "The source confirms the basic description of Scottish seining using 'long ropes extending from the wings, which are used to encircle a large area.' However, the comparative claim that it 'can be less damaging to seabed habitats compared to bottom trawling when properly managed' is not supported by this specific source. The source only describes the technique without making environmental comparisons.",
+      "created_at": "2026-04-07T20:53:06.030916+00:00"
+    },
+    {
+      "id": "s6",
+      "text": "Danish seining is another seine netting technique that can be more selective and less damaging to marine habitats than bottom trawling when operated with proper management.",
+      "source_url": "https://www.fao.org/fishery/fishtech/1003/en",
+      "source_domain": "www.fao.org",
+      "verdict": "needs_revision",
+      "verdict_reason": "The source confirms the basic description of Danish seining as a seine netting technique with 'long ropes extending from the wings, which are used to encircle a large area.' However, the comparative claims that it 'can be more selective and less damaging to marine habitats than bottom trawling when operated with proper management' are not supported by this specific source. The source only describes the technique without making claims about selectivity or environmental impact compared to bottom trawling.",
+      "created_at": "2026-04-07T20:53:10.318401+00:00"
+    }
+  ],
+  "media": [],
+  "content": {
+    "id": "t1",
+    "headline": "The Ocean's Silent Crisis: How We Can Fish Smarter, Not Harder",
+    "body": "Our oceans are facing a silent crisis. Right now, one-third of the world's fisheries are pushed beyond their biological limits due to overfishing. This isn't just about fewer fish on our plates—it's about entire marine ecosystems collapsing.\n\nThe problem is massive: today's fishing fleet is up to two-and-a-half times larger than what we actually need. This overcapacity, often fueled by government subsidies, creates a destructive cycle where we're fishing harder instead of smarter.\n\nBut there's another hidden tragedy: bycatch. While targeting specific species, billions of fish and hundreds of thousands of sea turtles, dolphins, and whales are accidentally caught and discarded—dead or dying. This needless waste threatens the very balance of our oceans.\n\n**The Solution is Within Reach**\n\nWe don't have to choose between feeding people and protecting our oceans. Sustainable fishing practices offer a better way forward:\n\n• **Selective Fishing Gear**: Using methods that target specific species and sizes, reducing bycatch by up to 90%\n• **Marine Protected Areas**: Creating safe zones where fish populations can recover and thrive\n• **Traceability Systems**: Ensuring every fish can be traced from ocean to plate\n• **Community-Based Management**: Empowering local fishers with science-based quotas\n• **Alternative Livelihoods**: Supporting coastal communities in sustainable tourism and aquaculture\n\n**What You Can Do Today**\n\nEvery choice matters. When you choose sustainably caught seafood, you're voting for healthier oceans. Ask your local restaurants and grocery stores about their sourcing. Support organizations working to reform fishing subsidies and promote sustainable practices.\n\nTogether, we can turn the tide. We can have thriving oceans that continue to feed billions while preserving the incredible biodiversity that makes our planet unique.",
+    "instagram_caption": "🌊 Did you know? One-third of the world's fisheries are pushed beyond their limits. \n\nOur oceans are in crisis, but there's hope. Overfishing doesn't have to be our story. Sustainable fishing practices are proving that we can feed communities AND protect marine life.\n\n👉 SWIPE LEFT to learn about:\n• The shocking scale of overfishing\n• The hidden tragedy of bycatch\n• Real solutions that are working RIGHT NOW\n• How YOU can make a difference\n\nEvery seafood choice you make sends a message to the fishing industry. Choose sustainable. Choose hope. 🌟\n\n#OceanConservation #SustainableFishing #SaveOurSeas #MarineLife #Overfishing #Bycatch #OceanHealth #SustainableSeafood #ProtectOurOceans #FishForTheFuture",
+    "call_to_action": "**Take Action for Healthier Oceans**\n\n1. **Choose Sustainable**: Download the Seafood Watch app to make informed choices\n2. **Ask Questions**: Demand transparency from restaurants and retailers about their seafood sources\n3. **Spread Awareness**: Share this message with 3 friends who care about our oceans\n4. **Support Change**: Donate to organizations reforming fishing subsidies and promoting sustainable practices\n\n**Together, we can fish smarter—not harder—and ensure thriving oceans for generations to come.**",
+    "created_at": "2026-04-07T20:55:35.057594+00:00"
+  },
+  "package": {
+    "id": "pkg-1",
+    "included_statements": [
+      "s1",
+      "s2",
+      "s3"
+    ],
+    "excluded_statements": [
+      "s4",
+      "s5",
+      "s6"
+    ],
+    "verified_statements": 3,
+    "has_content": true,
+    "media_count": 0,
+    "ready_to_publish": true,
+    "assembled_at": "2026-04-07T20:55:43.554117+00:00"
+  },
+  "created_at": "2026-04-07T20:48:54.888927+00:00",
+  "_counters": {
+    "statement": 6,
+    "media": 0,
+    "content": 1,
+    "package": 1
+  }
+}
