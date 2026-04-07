@@ -15,6 +15,7 @@ orchestrator:
     - doc_assemble
     - doc_publish_draft
     - doc_publish_live
+    - doc_list
     - doc_status
     - doc_get
 
@@ -27,8 +28,8 @@ agents:
       When given a topic, search only approved sources, extract statements,
       and attach a citation to every statement. Be thorough and evidence-based.
     permitted_actions:
-      - search_sources
-      - fetch_article
+      - search
+      - fetch_content
       - doc_add_statement
       - doc_status
       - doc_get
@@ -42,7 +43,7 @@ agents:
       or taken out of context, and is still current. Set a verdict for each
       statement: verified, rejected, or needs_revision, with a brief explanation.
     permitted_actions:
-      - fetch_article
+      - fetch_content
       - doc_set_verdict
       - doc_status
       - doc_get

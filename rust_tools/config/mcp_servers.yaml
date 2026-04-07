@@ -2,14 +2,14 @@
 # Supported transport types: stdio, http
 
 servers:
-  filesystem:
-    transport: stdio
-    command: npx
-    args:
-      - "-y"
-      - "@modelcontextprotocol/server-filesystem"
-      - "."
-    env: {}
+  # filesystem:
+  #   transport: stdio
+  #   command: npx
+  #   args:
+  #     - "-y"
+  #     - "@modelcontextprotocol/server-filesystem"
+  #     - "."
+  #   env: {}
 
   campaign-doc:
     transport: stdio
@@ -20,7 +20,13 @@ servers:
       - "../mcp/campaign-doc"
       - "python"
       - "../mcp/campaign-doc/server.py"
-    env: {}
+    env: { CAMPAIGN_DOC_STORAGE_DIR: "../.tmp/campaign_docs" }
+
+  duckduckgo:
+    transport: stdio
+    command: uvx
+    args:
+      - "duckduckgo-mcp-server"
 
   # Example: HTTP-based MCP server
   # remote-tools:
