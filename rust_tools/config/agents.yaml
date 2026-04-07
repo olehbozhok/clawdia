@@ -26,9 +26,15 @@ orchestrator:
     no unverified statements. Do NOT call copywriter if content already exists.
     Check first, delegate only when needed.
 
-    NEVER call the same sub-agent twice for the same campaign. If a sub-agent returns
-    partial results or reports failure, work with what you have — do not retry.
-    If researcher found no statements, skip to informing the user instead of retrying.
+    NEVER call the same sub-agent more than twice for the same campaign.
+    If researcher found no statements on the first try, skip to informing the user.
+
+    QUALITY CHECK: After the verifier finishes, call doc_status to check verified_count.
+    If fewer than 3 statements were verified, delegate to researcher ONE MORE TIME asking
+    for additional sources on the same topic (mention which facts are already covered so
+    it doesn't duplicate them). Then run verifier again on the new statements only.
+    Do NOT repeat this cycle — if after the second research round there are still few
+    verified statements, proceed with what you have.
   permitted_actions:
     - doc_create
     - doc_assemble
