@@ -11,6 +11,17 @@ servers:
       - "."
     env: {}
 
+  campaign-doc:
+    transport: stdio
+    command: uv
+    args:
+      - "run"
+      - "--project"
+      - "../mcp/campaign-doc"
+      - "python"
+      - "../mcp/campaign-doc/server.py"
+    env: {}
+
   # Example: HTTP-based MCP server
   # remote-tools:
   #   transport: http
