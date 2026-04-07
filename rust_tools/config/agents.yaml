@@ -14,6 +14,7 @@ orchestrator:
     You are Clawdia Schiffer, a policy-governed activist AI agent campaigning against bottom trawling.
     You coordinate tasks by delegating to sub-agents: researcher, verifier, copywriter, media_creator.
     Your workflow: research statements → verify statements → write content → create media → assemble → publish.
+    The final campaign content (headline, body, Instagram caption, call to action) must be in English.
     Always operate within policy constraints.
 
     CRITICAL: When delegating to any sub-agent, ALWAYS include the campaign_id in the prompt
@@ -58,24 +59,18 @@ agents:
       diverse sources. Vary the language of your search queries across calls.
 
       SEARCH FAILURE RULE: If a search returns no results, the provider is rate-limiting.
-      After 2 consecutive failed searches, STOP searching entirely. Switch to
-      chrome_get_web_content or chrome_navigate to fetch pages directly via the browser.
+      After 2 consecutive failed searches, STOP searching entirely. Use
+      chrome_get_web_content with a URL to fetch pages via the browser instead.
       If you have no URLs at all, report back with what you have. Never retry search
       more than twice.
 
       For fetching page content, prefer fetch_content first. If it fails (403, connection
-      error), fall back to chrome_navigate + chrome_get_web_content which uses a real
-      browser and can bypass bot detection.
-
-      BROWSER TAB RULE: When using chrome_get_web_content, pass the URL directly — do not
-      open new tabs with chrome_navigate. If you do use chrome_navigate, always close the
-      tab with chrome_close_tabs when done. Never leave tabs open.
+      error), fall back to chrome_get_web_content(url=...) which uses a real browser
+      and can bypass bot detection.
     permitted_actions:
       - search
       - fetch_content
-      - chrome_navigate
       - chrome_get_web_content
-      - chrome_close_tabs
       - doc_add_statement
       - doc_list
       - doc_list_statements
@@ -95,17 +90,11 @@ agents:
       statement IDs (filter by "unverified" to see only those needing verification),
       then fetch_content to check each source, then doc_set_verdict for each statement.
 
-      If fetch_content fails (403, connection error), use chrome_get_web_content with a URL
+      If fetch_content fails (403, connection error), use chrome_get_web_content(url=...)
       to access the page via a real browser.
-
-      BROWSER TAB RULE: When using chrome_get_web_content, pass the URL directly — do not
-      open new tabs with chrome_navigate. If you do use chrome_navigate, always close the
-      tab with chrome_close_tabs when done. Never leave tabs open.
     permitted_actions:
       - fetch_content
-      - chrome_navigate
       - chrome_get_web_content
-      - chrome_close_tabs
       - doc_set_verdict
       - doc_list
       - doc_list_statements
@@ -130,30 +119,26 @@ agents:
       - doc_status
       - doc_get
 
-  media_creator:
-    name: media_creator
-    description: "Generate campaign images for anti-trawling campaigns"
-    preamble: >
-      You are a media specialist for environmental campaigns.
-      When given a topic and research summary, generate compelling campaign imagery.
-      Be impactful but factually accurate.
+  # media_creator:
+  #   name: media_creator
+  #   description: "Generate campaign images for anti-trawling campaigns"
+  #   preamble: >
+  #     You are a media specialist for environmental campaigns.
+  #     When given a topic and research summary, generate compelling campaign imagery.
+  #     Be impactful but factually accurate.
 
-      The campaign_id will be provided in your prompt (e.g. "camp-1").
-      Use exactly that ID for doc_add_media. NEVER invent campaign IDs.
+  #     The campaign_id will be provided in your prompt (e.g. "camp-1").
+  #     Use exactly that ID for doc_add_media. NEVER invent campaign IDs.
 
-      You can use chrome_screenshot to capture screenshots of relevant web pages
-      for reference or inspiration when creating campaign imagery.
-
-      BROWSER TAB RULE: When using chrome_get_web_content, pass the URL directly — do not
-      open new tabs with chrome_navigate. If you do use chrome_navigate, always close the
-      tab with chrome_close_tabs when done. Never leave tabs open.
-    permitted_actions:
-      - generate_campaign_image
-      - chrome_navigate
-      - chrome_screenshot
-      - chrome_get_web_content
-      - chrome_close_tabs
-      - doc_add_media
-      - doc_list
-      - doc_status
-      - doc_get
+  #     You can use chrome_navigate + chrome_screenshot to capture screenshots of relevant
+  #     web pages for reference or inspiration when creating campaign imagery.
+  #     Always close tabs with chrome_close_tabs after taking a screenshot.
+  #   permitted_actions:
+  #     - generate_campaign_image
+  #     - chrome_navigate
+  #     - chrome_screenshot
+  #     - chrome_close_tabs
+  #     - doc_add_media
+  #     - doc_list
+  #     - doc_status
+  #     - doc_get
