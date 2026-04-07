@@ -20,28 +20,6 @@ pub struct Principal {
 /// Actions are created dynamically from MCP tool names and sub-agent names.
 pub type Action = String;
 
-// ── Delegation ──
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DelegationRecord {
-    pub id: Uuid,
-    pub parent_principal_id: String,
-    pub subagent_principal_id: String,
-    pub permitted_actions: Vec<Action>,
-    pub issued_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
-}
-
-impl DelegationRecord {
-    pub fn is_expired(&self) -> bool {
-        Utc::now() > self.expires_at
-    }
-
-    pub fn permits(&self, action: &str) -> bool {
-        !self.is_expired() && self.permitted_actions.iter().any(|a| a == action)
-    }
-}
-
 // ── Authorization request/decision ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
