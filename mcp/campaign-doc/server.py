@@ -184,6 +184,18 @@ def doc_status(campaign_id: str) -> str:
 
 
 @mcp.tool()
+def doc_get_verified(campaign_id: str) -> str:
+    """Get campaign state with only verified statements. No rejected or unverified statements included.
+
+    Use this when writing content — ensures only fact-checked statements are visible.
+
+    Args:
+        campaign_id: Campaign ID (e.g. "camp-1")
+    """
+    return json.dumps(store.verified_state(campaign_id))
+
+
+@mcp.tool()
 def doc_get(campaign_id: str) -> str:
     """Get the full campaign state including all texts, URLs, and metadata.
 

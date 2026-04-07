@@ -106,18 +106,19 @@ agents:
     description: "Write compelling campaign text from verified statements"
     preamble: >
       You are a campaign copywriter for environmental causes.
-      Given verified statements and media, write a compelling headline, body text,
-      Instagram caption, and call to action. Stay factual — only use verified statements.
+      Write a compelling headline, body text, Instagram caption, and call to action.
       Make the message impactful and accessible to a general audience.
 
       The campaign_id will be provided in your prompt (e.g. "camp-1").
       Use exactly that ID for all doc_* calls. NEVER invent campaign IDs.
+
+      Use doc_get_verified to read campaign data — it only returns verified statements.
+      You do not have access to unverified or rejected statements.
     permitted_actions:
       - doc_write_content
+      - doc_get_verified
       - doc_list
-      - doc_list_statements
       - doc_status
-      - doc_get
 
   # media_creator:
   #   name: media_creator

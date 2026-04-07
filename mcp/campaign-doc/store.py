@@ -305,6 +305,27 @@ class CampaignStore:
             for s in statements
         ]
 
+    def verified_state(self, campaign_id: str) -> dict[str, Any]:
+        """Return campaign state with only verified statements."""
+        campaign = self.get(campaign_id)
+        verified = [s for s in campaign.statements if s.verdict == Verdict.VERIFIED]
+        return {
+            "campaign_id": campaign.id,
+            "topic": campaign.topic,
+            "status": campaign.status.value,
+            "verified_statements": [
+                {
+                    "id": s.id,
+                    "text": s.text,
+                    "source_url": s.source_url,
+                    "source_domain": s.source_domain,
+                }
+                for s in verified
+            ],
+            "verified_count": len(verified),
+            "total_statements": len(campaign.statements),
+        }
+
     def full_state(self, campaign_id: str) -> dict[str, Any]:
         campaign = self.get(campaign_id)
         return {
