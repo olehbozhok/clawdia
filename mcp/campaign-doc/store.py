@@ -1,10 +1,12 @@
-"""In-memory campaign document store with auto-increment IDs."""
+"""Campaign document store with optional file persistence."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
@@ -100,9 +102,13 @@ class Campaign:
 
 
 class CampaignStore:
-    def __init__(self) -> None:
+    def __init__(self, storage_dir: Path | None = None) -> None:
         self._campaigns: dict[str, Campaign] = {}
         self._counter: int = 0
+        self._storage_dir = storage_dir
+        if storage_dir is not None:
+            storage_dir.mkdir(parents=True, exist_ok=True)
+            self._load_all()
 
     def _next_id(self) -> str:
         self._counter += 1
@@ -115,6 +121,7 @@ class CampaignStore:
             status=CampaignStatus.CREATED,
         )
         self._campaigns[campaign.id] = campaign
+        self._save(campaign)
         return campaign
 
     def get(self, campaign_id: str) -> Campaign:
@@ -137,6 +144,7 @@ class CampaignStore:
         )
         campaign.statements.append(statement)
         campaign.status = CampaignStatus.IN_PROGRESS
+        self._save(campaign)
         return statement
 
     def set_verdict(
@@ -151,6 +159,7 @@ class CampaignStore:
             if statement.id == statement_id:
                 statement.verdict = verdict
                 statement.verdict_reason = reason
+                self._save(campaign)
                 return statement
         raise KeyError(f"Statement '{statement_id}' not found in campaign '{campaign_id}'")
 
@@ -170,6 +179,7 @@ class CampaignStore:
         )
         campaign.media.append(media)
         campaign.status = CampaignStatus.IN_PROGRESS
+        self._save(campaign)
         return media
 
     def write_content(
@@ -190,6 +200,7 @@ class CampaignStore:
         )
         campaign.content = content
         campaign.status = CampaignStatus.IN_PROGRESS
+        self._save(campaign)
         return content
 
     def assemble(self, campaign_id: str) -> CampaignPackage:
@@ -208,7 +219,23 @@ class CampaignStore:
         )
         campaign.package = package
         campaign.status = CampaignStatus.ASSEMBLED
+        self._save(campaign)
         return package
+
+    def list_campaigns(self, status: CampaignStatus | None = None) -> list[dict[str, Any]]:
+        campaigns = self._campaigns.values()
+        if status is not None:
+            campaigns = [c for c in campaigns if c.status == status]
+        return [
+            {
+                "campaign_id": c.id,
+                "topic": c.topic,
+                "status": c.status.value,
+                "statements": len(c.statements),
+                "created_at": c.created_at,
+            }
+            for c in campaigns
+        ]
 
     def status(self, campaign_id: str) -> dict[str, Any]:
         campaign = self.get(campaign_id)
@@ -302,6 +329,7 @@ class CampaignStore:
         if campaign.package is None:
             raise ValueError(f"Campaign '{campaign_id}' has no assembled package. Call doc_assemble first.")
         campaign.status = CampaignStatus.DRAFT_SAVED
+        self._save(campaign)
         return {"status": "draft_saved", "package_id": campaign.package.id}
 
     def publish_live(self, campaign_id: str) -> dict[str, str]:
@@ -314,7 +342,113 @@ class CampaignStore:
             raise ValueError("At least 1 verified statement required for live publishing.")
         # NOTE: human approval (id_token/userinfo_token) validation will be added with Cedarling
         campaign.status = CampaignStatus.PUBLISHED
+        self._save(campaign)
         return {"status": "published", "package_id": campaign.package.id}
+
+
+    # -- Persistence helpers --------------------------------------------------
+
+    def _campaign_path(self, campaign_id: str) -> Path:
+        assert self._storage_dir is not None
+        return self._storage_dir / f"{campaign_id}.json"
+
+    def _save(self, campaign: Campaign) -> None:
+        if self._storage_dir is None:
+            return
+        data = asdict(campaign)
+        data.pop("_statement_counter", None)
+        data.pop("_media_counter", None)
+        data.pop("_content_counter", None)
+        data.pop("_package_counter", None)
+        data["_counters"] = {
+            "statement": campaign._statement_counter,
+            "media": campaign._media_counter,
+            "content": campaign._content_counter,
+            "package": campaign._package_counter,
+        }
+        self._campaign_path(campaign.id).write_text(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    def _load_all(self) -> None:
+        assert self._storage_dir is not None
+        for path in sorted(self._storage_dir.glob("camp-*.json")):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            campaign = _campaign_from_dict(data)
+            self._campaigns[campaign.id] = campaign
+            num = int(campaign.id.removeprefix("camp-"))
+            if num > self._counter:
+                self._counter = num
+
+
+def _campaign_from_dict(data: dict[str, Any]) -> Campaign:
+    counters = data.pop("_counters", {})
+    statements = [
+        Statement(
+            id=s["id"],
+            text=s["text"],
+            source_url=s["source_url"],
+            source_domain=s["source_domain"],
+            verdict=Verdict(s["verdict"]) if s.get("verdict") else None,
+            verdict_reason=s.get("verdict_reason"),
+            created_at=s.get("created_at", _now()),
+        )
+        for s in data.get("statements", [])
+    ]
+    media = [
+        MediaRef(
+            id=m["id"],
+            media_type=m["media_type"],
+            ref=m["ref"],
+            description=m["description"],
+            created_at=m.get("created_at", _now()),
+        )
+        for m in data.get("media", [])
+    ]
+    content_data = data.get("content")
+    content = (
+        CampaignContent(
+            id=content_data["id"],
+            headline=content_data["headline"],
+            body=content_data["body"],
+            instagram_caption=content_data["instagram_caption"],
+            call_to_action=content_data["call_to_action"],
+            created_at=content_data.get("created_at", _now()),
+        )
+        if content_data
+        else None
+    )
+    package_data = data.get("package")
+    package = (
+        CampaignPackage(
+            id=package_data["id"],
+            included_statements=package_data["included_statements"],
+            excluded_statements=package_data["excluded_statements"],
+            verified_statements=package_data["verified_statements"],
+            has_content=package_data["has_content"],
+            media_count=package_data["media_count"],
+            ready_to_publish=package_data["ready_to_publish"],
+            assembled_at=package_data.get("assembled_at", _now()),
+        )
+        if package_data
+        else None
+    )
+    campaign = Campaign(
+        id=data["id"],
+        topic=data["topic"],
+        status=CampaignStatus(data["status"]),
+        statements=statements,
+        media=media,
+        content=content,
+        package=package,
+        created_at=data.get("created_at", _now()),
+    )
+    campaign._statement_counter = counters.get("statement", len(statements))
+    campaign._media_counter = counters.get("media", len(media))
+    campaign._content_counter = counters.get("content", 1 if content else 0)
+    campaign._package_counter = counters.get("package", 1 if package else 0)
+    return campaign
 
 
 def _now() -> str:

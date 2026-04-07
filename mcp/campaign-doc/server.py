@@ -6,14 +6,28 @@ create, add statements, set verdicts, add media, write content, assemble, publis
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
+from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from store import CampaignStore, Verdict
+from store import CampaignStatus, CampaignStore, Verdict
+
+
+def _parse_storage_dir() -> Path | None:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--storage-dir", default=None)
+    args, _ = parser.parse_known_args()
+    raw = args.storage_dir or os.environ.get("CAMPAIGN_DOC_STORAGE_DIR")
+    if raw:
+        return Path(raw)
+    return None
+
 
 mcp = FastMCP("campaign-doc")
-store = CampaignStore()
+store = CampaignStore(storage_dir=_parse_storage_dir())
 
 
 @mcp.tool()
@@ -127,6 +141,17 @@ def doc_assemble(campaign_id: str) -> str:
         "media_count": package.media_count,
         "ready_to_publish": package.ready_to_publish,
     })
+
+
+@mcp.tool()
+def doc_list(status: str | None = None) -> str:
+    """List all campaigns with their ID, topic, status, and statement count.
+
+    Args:
+        status: Optional filter by status: "created", "in_progress", "assembled", "draft_saved", "published"
+    """
+    filter_status = CampaignStatus(status) if status else None
+    return json.dumps(store.list_campaigns(status=filter_status))
 
 
 @mcp.tool()

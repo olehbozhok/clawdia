@@ -60,6 +60,42 @@ servers:
     env: {}
 ```
 
+## Storage
+
+By default campaigns are stored **in memory** and lost when the server stops.
+
+To persist campaigns as JSON files, set a storage directory via CLI flag or env var:
+
+```bash
+# CLI flag
+uv run --project /path/to/mcp/campaign-doc \
+  python /path/to/mcp/campaign-doc/server.py --storage-dir /path/to/campaigns
+
+# Environment variable
+export CAMPAIGN_DOC_STORAGE_DIR=/path/to/campaigns
+uv run --project /path/to/mcp/campaign-doc \
+  python /path/to/mcp/campaign-doc/server.py
+```
+
+Each campaign is saved as `camp-N.json` in the specified directory. Existing campaigns are loaded on startup.
+
+For MCP config, pass the flag in `args` or the env var in `env`:
+
+```json
+{
+  "mcpServers": {
+    "campaign-doc": {
+      "command": "uv",
+      "args": [
+        "run", "--project", "/path/to/mcp/campaign-doc",
+        "python", "/path/to/mcp/campaign-doc/server.py",
+        "--storage-dir", "/path/to/campaigns"
+      ]
+    }
+  }
+}
+```
+
 ## Available tools
 
 | Tool | Description |
@@ -70,6 +106,7 @@ servers:
 | `doc_add_media` | Add image/video media reference |
 | `doc_write_content` | Write headline, body, Instagram caption, CTA |
 | `doc_assemble` | Assemble package from verified statements only |
+| `doc_list` | List all campaigns (ID, topic, status, statement count) |
 | `doc_status` | Get lightweight campaign metadata (counts and readiness flags) |
 | `doc_get` | Get full campaign state with all texts and URLs |
 | `doc_publish_draft` | Save assembled campaign as draft |
