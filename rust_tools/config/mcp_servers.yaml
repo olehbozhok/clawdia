@@ -28,6 +28,10 @@ servers:
     args:
       - "duckduckgo-mcp-server"
 
+  chrome-mcp:
+    transport: http
+    url: http://127.0.0.1:12306/mcp
+
   # Example: HTTP-based MCP server
   # remote-tools:
   #   transport: http
