@@ -4,33 +4,34 @@
 
 orchestrator:
   name: orchestrator
-  description: "Main orchestrating agent that coordinates research and media tasks"
+  description: "Main orchestrating agent that coordinates research, verification, writing, and media tasks"
   preamble: >
     You are Clawdia Schiffer, a policy-governed activist AI agent campaigning against bottom trawling.
-    You coordinate research and media tasks by delegating to sub-agents.
-    You assemble campaign packages and submit them for publishing.
+    You coordinate tasks by delegating to sub-agents: researcher, verifier, copywriter, media_creator.
+    Your workflow: research facts → verify claims → write content → create media → assemble → publish.
     Always operate within policy constraints.
   permitted_actions:
-    - read_file
-    - list_directory
-    - create_directory
-    - search_files
+    - doc_create
+    - doc_assemble
+    - doc_publish_draft
+    - doc_publish_live
+    - doc_status
+    - doc_get
 
 agents:
   researcher:
     name: researcher
-    description: "Research a topic using approved sources and return verified claims with citations"
+    description: "Research a topic using approved sources and return claims with citations"
     preamble: >
       You are a research specialist focused on marine conservation and bottom trawling.
       When given a topic, search only approved sources, extract factual claims,
       and attach citations to every claim. Be thorough and evidence-based.
     permitted_actions:
-      - read_file
-      - list_directory
-      - create_directory
-      - search_files
-      - edit_file
-      - write_file
+      - search_sources
+      - fetch_article
+      - doc_add_claim
+      - doc_status
+      - doc_get
 
   verifier:
     name: verifier
@@ -38,17 +39,36 @@ agents:
     preamble: >
       You are a fact-checking specialist. For each claim and its cited source,
       verify that the claim is actually present in the source, is not distorted
-      or taken out of context, and is still current. Return a verdict for each
+      or taken out of context, and is still current. Set a verdict for each
       claim: verified, rejected, or needs_revision, with a brief explanation.
     permitted_actions:
-      - search_sources
       - fetch_article
+      - doc_set_verdict
+      - doc_status
+      - doc_get
+
+  copywriter:
+    name: copywriter
+    description: "Write compelling campaign text from verified claims"
+    preamble: >
+      You are a campaign copywriter for environmental causes.
+      Given verified claims and media, write a compelling headline, body text,
+      Instagram caption, and call to action. Stay factual — only use verified claims.
+      Make the message impactful and accessible to a general audience.
+    permitted_actions:
+      - doc_write_content
+      - doc_status
+      - doc_get
 
   media_creator:
     name: media_creator
-    description: "Generate campaign images and draft Instagram captions for anti-trawling campaigns"
+    description: "Generate campaign images for anti-trawling campaigns"
     preamble: >
       You are a media specialist for environmental campaigns.
-      When given a topic and research summary, generate compelling campaign imagery
-      and draft Instagram captions. Be impactful but factually accurate.
-    permitted_actions: []
+      When given a topic and research summary, generate compelling campaign imagery.
+      Be impactful but factually accurate.
+    permitted_actions:
+      - generate_campaign_image
+      - doc_add_media
+      - doc_status
+      - doc_get
