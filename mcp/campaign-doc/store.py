@@ -272,6 +272,30 @@ class CampaignStore:
             ),
         }
 
+    def list_statements(
+        self,
+        campaign_id: str,
+        verdict_filter: str | None = None,
+    ) -> list[dict[str, Any]]:
+        campaign = self.get(campaign_id)
+        statements = campaign.statements
+        if verdict_filter == "unverified":
+            statements = [s for s in statements if s.verdict is None]
+        elif verdict_filter is not None:
+            v = Verdict(verdict_filter)
+            statements = [s for s in statements if s.verdict == v]
+        return [
+            {
+                "statement_id": s.id,
+                "text": s.text,
+                "source_url": s.source_url,
+                "source_domain": s.source_domain,
+                "verdict": s.verdict.value if s.verdict else None,
+                "verdict_reason": s.verdict_reason,
+            }
+            for s in statements
+        ]
+
     def full_state(self, campaign_id: str) -> dict[str, Any]:
         campaign = self.get(campaign_id)
         return {

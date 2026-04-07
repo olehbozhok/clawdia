@@ -144,6 +144,23 @@ def doc_assemble(campaign_id: str) -> str:
 
 
 @mcp.tool()
+def doc_list_statements(
+    campaign_id: str,
+    verdict: str | None = None,
+) -> str:
+    """List statements in a campaign with their IDs, text, source, and verdict.
+
+    Use this to discover statement IDs before calling doc_set_verdict or to check
+    which statements still need verification.
+
+    Args:
+        campaign_id: Campaign ID (e.g. "camp-1")
+        verdict: Optional filter: "verified", "rejected", "needs_revision", or "unverified"
+    """
+    return json.dumps(store.list_statements(campaign_id, verdict_filter=verdict))
+
+
+@mcp.tool()
 def doc_list(status: str | None = None) -> str:
     """List all campaigns with their ID, topic, status, and statement count.
 

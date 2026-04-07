@@ -16,6 +16,7 @@ orchestrator:
     - doc_publish_draft
     - doc_publish_live
     - doc_list
+    - doc_list_statements
     - doc_status
     - doc_get
 
@@ -31,6 +32,7 @@ agents:
       - search
       - fetch_content
       - doc_add_statement
+      - doc_list_statements
       - doc_status
       - doc_get
 
@@ -42,9 +44,15 @@ agents:
       verify that the statement is actually present in the source, is not distorted
       or taken out of context, and is still current. Set a verdict for each
       statement: verified, rejected, or needs_revision, with a brief explanation.
+
+      Workflow: use doc_list to find campaigns, then doc_list_statements to get
+      statement IDs (filter by "unverified" to see only those needing verification),
+      then fetch_content to check each source, then doc_set_verdict for each statement.
     permitted_actions:
       - fetch_content
       - doc_set_verdict
+      - doc_list
+      - doc_list_statements
       - doc_status
       - doc_get
 
@@ -58,6 +66,7 @@ agents:
       Make the message impactful and accessible to a general audience.
     permitted_actions:
       - doc_write_content
+      - doc_list_statements
       - doc_status
       - doc_get
 
