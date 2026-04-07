@@ -32,19 +32,17 @@ def doc_add_statement(
     campaign_id: str,
     text: str,
     source_url: str,
-    source_domain: str,
-    domain_tier: str,
 ) -> str:
     """Add a statement with its citation to a campaign.
+
+    The source domain is extracted automatically from the URL.
 
     Args:
         campaign_id: Campaign ID (e.g. "camp-1")
         text: The statement text
-        source_url: URL of the source article
-        source_domain: Domain of the source (e.g. "fisheries.noaa.gov")
-        domain_tier: Source tier: "government_scientific", "ngo_advocacy", or "academic"
+        source_url: URL of the source article (e.g. "https://fisheries.noaa.gov/article/123")
     """
-    statement = store.add_statement(campaign_id, text, source_url, source_domain, domain_tier)
+    statement = store.add_statement(campaign_id, text, source_url)
     return json.dumps({"statement_id": statement.id})
 
 

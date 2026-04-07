@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from urllib.parse import urlparse
 
 
 class Verdict(str, Enum):
@@ -28,7 +29,6 @@ class Statement:
     text: str
     source_url: str
     source_domain: str
-    domain_tier: str
     verdict: Verdict | None = None
     verdict_reason: str | None = None
     created_at: str = field(default_factory=lambda: _now())
@@ -127,16 +127,13 @@ class CampaignStore:
         campaign_id: str,
         text: str,
         source_url: str,
-        source_domain: str,
-        domain_tier: str,
     ) -> Statement:
         campaign = self.get(campaign_id)
         statement = Statement(
             id=campaign.next_statement_id(),
             text=text,
             source_url=source_url,
-            source_domain=source_domain,
-            domain_tier=domain_tier,
+            source_domain=_extract_domain(source_url),
         )
         campaign.statements.append(statement)
         campaign.status = CampaignStatus.IN_PROGRESS
@@ -197,8 +194,8 @@ class CampaignStore:
 
     def assemble(self, campaign_id: str) -> CampaignPackage:
         campaign = self.get(campaign_id)
-        included = [c.id for c in campaign.statements if c.verdict == Verdict.VERIFIED]
-        excluded = [c.id for c in campaign.statements if c.verdict != Verdict.VERIFIED]
+        included = [s.id for s in campaign.statements if s.verdict == Verdict.VERIFIED]
+        excluded = [s.id for s in campaign.statements if s.verdict != Verdict.VERIFIED]
 
         package = CampaignPackage(
             id=campaign.next_package_id(),
@@ -215,7 +212,7 @@ class CampaignStore:
 
     def status(self, campaign_id: str) -> dict[str, Any]:
         campaign = self.get(campaign_id)
-        verdicts = [c.verdict for c in campaign.statements]
+        verdicts = [s.verdict for s in campaign.statements]
         return {
             "campaign_id": campaign.id,
             "topic": campaign.topic,
@@ -238,7 +235,7 @@ class CampaignStore:
                 "has_call_to_action": campaign.content is not None and bool(campaign.content.call_to_action),
             },
             "ready_to_assemble": (
-                any(c.verdict == Verdict.VERIFIED for c in campaign.statements)
+                any(s.verdict == Verdict.VERIFIED for s in campaign.statements)
                 and campaign.content is not None
                 and len(campaign.media) > 0
             ),
@@ -256,15 +253,14 @@ class CampaignStore:
             "status": campaign.status.value,
             "statements": [
                 {
-                    "id": c.id,
-                    "text": c.text,
-                    "source_url": c.source_url,
-                    "source_domain": c.source_domain,
-                    "domain_tier": c.domain_tier,
-                    "verdict": c.verdict.value if c.verdict else None,
-                    "verdict_reason": c.verdict_reason,
+                    "id": s.id,
+                    "text": s.text,
+                    "source_url": s.source_url,
+                    "source_domain": s.source_domain,
+                    "verdict": s.verdict.value if s.verdict else None,
+                    "verdict_reason": s.verdict_reason,
                 }
-                for c in campaign.statements
+                for s in campaign.statements
             ],
             "media": [
                 {
@@ -323,3 +319,10 @@ class CampaignStore:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _extract_domain(url: str) -> str:
+    parsed = urlparse(url)
+    if not parsed.hostname:
+        raise ValueError(f"Cannot extract domain from URL: {url}")
+    return parsed.hostname

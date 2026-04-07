@@ -7,8 +7,8 @@ def make_store_with_statements() -> tuple[CampaignStore, str]:
     """Helper: create store with a campaign and 2 statements."""
     store = CampaignStore()
     campaign = store.create("Test topic")
-    store.add_statement(campaign.id, "Statement one", "https://noaa.gov/1", "noaa.gov", "government_scientific")
-    store.add_statement(campaign.id, "Statement two", "https://fao.org/2", "fao.org", "government_scientific")
+    store.add_statement(campaign.id, "Statement one", "https://fisheries.noaa.gov/1")
+    store.add_statement(campaign.id, "Statement two", "https://fao.org/2")
     return store, campaign.id
 
 
@@ -35,7 +35,7 @@ def test_create_auto_increments() -> None:
 def test_add_statement() -> None:
     store = CampaignStore()
     c = store.create("Topic")
-    statement = store.add_statement(c.id, "Statement", "https://noaa.gov/1", "noaa.gov", "government_scientific")
+    statement = store.add_statement(c.id, "Statement", "https://fisheries.noaa.gov/1")
     assert statement.id == "s1"
     assert statement.verdict is None
 
@@ -49,7 +49,7 @@ def test_statement_ids_auto_increment() -> None:
 def test_add_statement_sets_in_progress() -> None:
     store = CampaignStore()
     c = store.create("Topic")
-    store.add_statement(c.id, "Statement", "https://noaa.gov/1", "noaa.gov", "tier1")
+    store.add_statement(c.id, "Statement", "https://fisheries.noaa.gov/1")
     assert store.get(c.id).status == CampaignStatus.IN_PROGRESS
 
 
@@ -252,3 +252,19 @@ def test_get_unknown_campaign_raises() -> None:
         assert False, "Should have raised"
     except KeyError:
         pass
+
+
+# ── domain extraction ──
+
+def test_domain_extracted_from_url() -> None:
+    store = CampaignStore()
+    c = store.create("Topic")
+    s = store.add_statement(c.id, "Statement", "https://fisheries.noaa.gov/article/123")
+    assert s.source_domain == "fisheries.noaa.gov"
+
+
+def test_domain_extracted_with_subdomain() -> None:
+    store = CampaignStore()
+    c = store.create("Topic")
+    s = store.add_statement(c.id, "Statement", "https://www.fao.org/report")
+    assert s.source_domain == "www.fao.org"
