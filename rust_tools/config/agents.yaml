@@ -1,6 +1,11 @@
 # Agent Configuration
 # deny-by-default: only explicitly listed actions (tool names) are allowed.
 # Sub-agents are always available to the orchestrator (no permission needed).
+#
+# BROWSER TAB RULE (applies to all agents with chrome_* tools):
+# When using chrome_get_web_content, pass the URL directly — do not open new tabs
+# with chrome_navigate. If you do use chrome_navigate, always close the tab with
+# chrome_close_tabs when done. Never leave tabs open.
 
 orchestrator:
   name: orchestrator
@@ -61,11 +66,16 @@ agents:
       For fetching page content, prefer fetch_content first. If it fails (403, connection
       error), fall back to chrome_navigate + chrome_get_web_content which uses a real
       browser and can bypass bot detection.
+
+      BROWSER TAB RULE: When using chrome_get_web_content, pass the URL directly — do not
+      open new tabs with chrome_navigate. If you do use chrome_navigate, always close the
+      tab with chrome_close_tabs when done. Never leave tabs open.
     permitted_actions:
       - search
       - fetch_content
       - chrome_navigate
       - chrome_get_web_content
+      - chrome_close_tabs
       - doc_add_statement
       - doc_list
       - doc_list_statements
@@ -85,12 +95,17 @@ agents:
       statement IDs (filter by "unverified" to see only those needing verification),
       then fetch_content to check each source, then doc_set_verdict for each statement.
 
-      If fetch_content fails (403, connection error), use chrome_navigate + chrome_get_web_content
+      If fetch_content fails (403, connection error), use chrome_get_web_content with a URL
       to access the page via a real browser.
+
+      BROWSER TAB RULE: When using chrome_get_web_content, pass the URL directly — do not
+      open new tabs with chrome_navigate. If you do use chrome_navigate, always close the
+      tab with chrome_close_tabs when done. Never leave tabs open.
     permitted_actions:
       - fetch_content
       - chrome_navigate
       - chrome_get_web_content
+      - chrome_close_tabs
       - doc_set_verdict
       - doc_list
       - doc_list_statements
@@ -128,11 +143,16 @@ agents:
 
       You can use chrome_screenshot to capture screenshots of relevant web pages
       for reference or inspiration when creating campaign imagery.
+
+      BROWSER TAB RULE: When using chrome_get_web_content, pass the URL directly — do not
+      open new tabs with chrome_navigate. If you do use chrome_navigate, always close the
+      tab with chrome_close_tabs when done. Never leave tabs open.
     permitted_actions:
       - generate_campaign_image
       - chrome_navigate
       - chrome_screenshot
       - chrome_get_web_content
+      - chrome_close_tabs
       - doc_add_media
       - doc_list
       - doc_status
