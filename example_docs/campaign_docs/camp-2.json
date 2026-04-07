@@ -1,0 +1,194 @@
+{
+  "id": "camp-2",
+  "topic": "Alternative environmentally friendly fishing methods to replace bottom trawling",
+  "status": "published",
+  "statements": [
+    {
+      "id": "s1",
+      "text": "Pots and traps are considered a selective and low-impact alternative to bottom trawling, as they target specific species like crabs, lobsters, and sea bass without damaging seabed habitats.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/pots-and-traps",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source confirms pots and traps are \"selective and low impact method of fishing\" and target species including crabs, lobsters, and sea bass. While not explicitly comparing to bottom trawling, the characterization as selective and low-impact is accurate.",
+      "created_at": "2026-04-07T20:28:19.570510+00:00"
+    },
+    {
+      "id": "s2",
+      "text": "Traps and pots can be made more sustainable by using biodegradable materials to prevent ghost fishing, where lost gear continues to catch marine life indefinitely.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/pots-and-traps",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source has dedicated section \"Biodegradable materials to prevent ghost fishing\" that explicitly discusses using biodegradable elements to prevent ghost fishing where lost gear continues to catch marine life.",
+      "created_at": "2026-04-07T20:28:24.866152+00:00"
+    },
+    {
+      "id": "s3",
+      "text": "Bycatch in pot and trap fishing can be reduced through modifications like escape rings, vents, or hatches that allow undersized or non-target species to escape.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/pots-and-traps",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source explicitly states bycatch can be reduced through methods like adding escape rings, vents or hatches, and provides specific example of escape rings in Southern King crab fishery.",
+      "created_at": "2026-04-07T20:28:29.176052+00:00"
+    },
+    {
+      "id": "s4",
+      "text": "Pole and line fishing is a highly selective method that catches fish one at a time, resulting in low levels of bycatch and no contact with seabed habitats.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/pole-and-line",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source directly states: \"Pole and line fishing is a highly selective method where fish are caught one at a time close to the surface of the ocean. As a result, there are low levels of bycatch and the gear does not come into contact with seabed habitats.\"",
+      "created_at": "2026-04-07T20:28:34.388965+00:00"
+    },
+    {
+      "id": "s5",
+      "text": "Pole and line fishing targets tuna species at the ocean surface, making it an environmentally friendly alternative to methods that damage deep-sea ecosystems.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/pole-and-line",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source confirms pole and line targets tuna species at ocean surface and gear does not contact seabed habitats. While not explicitly comparing to deep-sea damaging methods, the characterization as environmentally friendly due to avoiding seabed contact is supported.",
+      "created_at": "2026-04-07T20:28:38.494030+00:00"
+    },
+    {
+      "id": "s6",
+      "text": "Longline fishing can be made more sustainable through modifications like circle hooks that reduce bycatch and tori-lines that prevent seabird entanglement during deployment.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/longlines",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source explicitly discusses tori-lines that prevent seabird entanglement during deployment and circle hooks that reduce bycatch likelihood.",
+      "created_at": "2026-04-07T20:28:43.239984+00:00"
+    },
+    {
+      "id": "s7",
+      "text": "Sustainable longline fisheries train crew in handle-and-release techniques for bycatch species and use weighted lines that sink quickly to reduce seabird interactions.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/longlines",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source explicitly mentions training crew in handle-and-release techniques and using weighted lines to sink quickly to reduce seabird interactions.",
+      "created_at": "2026-04-07T20:28:47.705862+00:00"
+    },
+    {
+      "id": "s8",
+      "text": "Purse seine fishing can be made more sustainable by using non-entangling and biodegradable Fish Aggregating Devices (FADs) to reduce ghost gear pollution.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/purse-seine",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source explicitly discusses using biodegradable and non-entangling FADs to reduce ghost gear pollution, stating biodegradable FADs disintegrate naturally and don't cause plastic pollution or act as ghost gear.",
+      "created_at": "2026-04-07T20:28:52.438328+00:00"
+    },
+    {
+      "id": "s9",
+      "text": "Sustainable purse seine fisheries modify net depth and size, and use secondary chutes to release sharks and other bycatch, reducing environmental impacts.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/purse-seine",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source confirms sustainable purse seine fisheries modify net depth and size, and use secondary chutes to release sharks and other bycatch.",
+      "created_at": "2026-04-07T20:28:57.757132+00:00"
+    },
+    {
+      "id": "s10",
+      "text": "Aquaculture is the world's fastest growing food sector and provides over half of aquatic foods for human consumption, reducing pressure on wild fish stocks.",
+      "source_url": "https://www.fao.org/aquaculture/en/",
+      "source_domain": "www.fao.org",
+      "verdict": "verified",
+      "verdict_reason": "Source confirms aquaculture is world's fastest growing food sector and provides over half of aquatic foods for human consumption. While not explicitly stating it reduces pressure on wild fish stocks, this is a reasonable inference from the data provided.",
+      "created_at": "2026-04-07T20:29:01.600693+00:00"
+    },
+    {
+      "id": "s11",
+      "text": "Sustainable aquaculture focuses on minimizing environmental impacts, improving biosecurity and disease control, and developing equitable outcomes through technology and innovation.",
+      "source_url": "https://www.fao.org/aquaculture/en/",
+      "source_domain": "www.fao.org",
+      "verdict": "verified",
+      "verdict_reason": "Source directly states sustainable aquaculture focuses on minimizing environmental impacts, improving biosecurity and disease control, and developing equitable outcomes through technology and innovation.",
+      "created_at": "2026-04-07T20:29:05.411275+00:00"
+    },
+    {
+      "id": "s12",
+      "text": "Sustainable fisheries management relies on sound science, innovative management approaches, effective enforcement, meaningful partnerships, and robust public participation.",
+      "source_url": "https://www.fisheries.noaa.gov/topic/sustainable-fisheries",
+      "source_domain": "www.fisheries.noaa.gov",
+      "verdict": "verified",
+      "verdict_reason": "Source directly states: \"Managing fisheries sustainably is an adaptive process that relies on sound science, innovative management approaches, effective enforcement, meaningful partnerships, and robust public participation.\"",
+      "created_at": "2026-04-07T20:29:09.730606+00:00"
+    },
+    {
+      "id": "s13",
+      "text": "Stock assessments using data from commercial and recreational fishermen provide critical information for making sustainable fishery management decisions.",
+      "source_url": "https://www.fisheries.noaa.gov/topic/sustainable-fisheries",
+      "source_domain": "www.fisheries.noaa.gov",
+      "verdict": "verified",
+      "verdict_reason": "Source confirms stock assessments use data from commercial and recreational fishermen and are critical to modern fisheries management for making management decisions.",
+      "created_at": "2026-04-07T20:29:13.469197+00:00"
+    },
+    {
+      "id": "s14",
+      "text": "Selective fishing methods like pole and line, pots and traps, and modified longlines can be used responsibly and sustainably with proper management.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source states virtually all gear types (including those listed like pole and line, pots and traps, longlines) can be used responsibly and sustainably with careful management.",
+      "created_at": "2026-04-07T20:29:17.820574+00:00"
+    },
+    {
+      "id": "s15",
+      "text": "Unlike bottom trawling which damages seabed habitats, pole and line fishing operates at the ocean surface and has minimal impact on marine ecosystems.",
+      "source_url": "https://www.msc.org/what-we-are-doing/our-approach/fishing-methods-and-gear-types/pole-and-line",
+      "source_domain": "www.msc.org",
+      "verdict": "verified",
+      "verdict_reason": "Source confirms pole and line operates at ocean surface and doesn't contact seabed habitats. While not explicitly comparing to bottom trawling, the contrast between surface fishing and seabed-damaging methods is reasonable.",
+      "created_at": "2026-04-07T20:29:22.437419+00:00"
+    },
+    {
+      "id": "s16",
+      "text": "Sustainable fishing practices help maintain fish stocks for future generations while supporting local, state, and national economies through commercial fishing industries.",
+      "source_url": "https://www.fisheries.noaa.gov/topic/sustainable-fisheries",
+      "source_domain": "www.fisheries.noaa.gov",
+      "verdict": "verified",
+      "verdict_reason": "Source discusses how sustainable fisheries maintain fish stocks and support economies at local, state, and national levels through commercial fishing industries.",
+      "created_at": "2026-04-07T20:29:27.143267+00:00"
+    }
+  ],
+  "media": [],
+  "content": {
+    "id": "t1",
+    "headline": "Beyond Bottom Trawling: Sustainable Fishing Alternatives That Protect Our Oceans",
+    "body": "Bottom trawling damages fragile seabed habitats, but there are proven, sustainable alternatives that can feed our communities while protecting marine ecosystems.\n\n**Selective Fishing Methods That Work**\nPots and traps are a selective, low-impact alternative that target specific species like crabs, lobsters, and sea bass without damaging seabed habitats. These can be made more sustainable by using biodegradable materials to prevent \"ghost fishing\" where lost gear continues to catch marine life indefinitely. Bycatch can be reduced through modifications like escape rings, vents, or hatches that allow undersized or non-target species to escape.\n\nPole and line fishing is another highly selective method that catches fish one at a time at the ocean surface, resulting in low levels of bycatch and no contact with seabed habitats. This method targets tuna species without damaging deep-sea ecosystems.\n\n**Innovative Modifications Make a Difference**\nLongline fishing can be made more sustainable through modifications like circle hooks that reduce bycatch and tori-lines that prevent seabird entanglement during deployment. Sustainable longline fisheries also train crew in handle-and-release techniques for bycatch species and use weighted lines that sink quickly to reduce seabird interactions.\n\nPurse seine fishing can be improved by using non-entangling and biodegradable Fish Aggregating Devices (FADs) to reduce ghost gear pollution. Sustainable purse seine fisheries modify net depth and size, and use secondary chutes to release sharks and other bycatch.\n\n**The Future of Sustainable Seafood**\nAquaculture is the world's fastest growing food sector and provides over half of aquatic foods for human consumption, reducing pressure on wild fish stocks. Sustainable aquaculture focuses on minimizing environmental impacts, improving biosecurity and disease control, and developing equitable outcomes through technology and innovation.\n\n**Science-Based Management**\nSustainable fisheries management relies on sound science, innovative management approaches, effective enforcement, meaningful partnerships, and robust public participation. Stock assessments using data from commercial and recreational fishermen provide critical information for making sustainable fishery management decisions.\n\nSelective fishing methods like pole and line, pots and traps, and modified longlines can be used responsibly and sustainably with proper management. These practices help maintain fish stocks for future generations while supporting local, state, and national economies through commercial fishing industries.\n\nThe choice is clear: we can continue destructive fishing practices or embrace sustainable alternatives that protect our oceans while feeding our communities.",
+    "instagram_caption": "🌊 Did you know there are sustainable alternatives to destructive bottom trawling? 🐟\n\nOur oceans are facing unprecedented challenges, but there's hope! Here are proven fishing methods that protect marine ecosystems while providing seafood:\n\n🎣 **Pole & Line Fishing**: Catches fish one at a time at the surface with minimal bycatch and NO seabed damage. Perfect for tuna!\n\n🦀 **Pots & Traps**: Selective targeting of crabs, lobsters, and sea bass without harming ocean floors. Plus, biodegradable options prevent \"ghost fishing.\"\n\n⚓ **Modified Longlines**: With circle hooks and tori-lines to protect seabirds, plus weighted lines that sink quickly.\n\n🐠 **Sustainable Aquaculture**: Provides over half of our aquatic foods while reducing pressure on wild fish stocks.\n\n🌱 **Science-Based Management**: Using data from fishermen to make smart decisions that protect fish populations for future generations.\n\nEvery seafood choice matters! By supporting sustainable fishing methods, we can protect our oceans while enjoying delicious, responsibly sourced seafood.\n\n#SustainableFishing #OceanConservation #MarineProtection #Seafood #EcoFriendly #FisheriesManagement #SaveOurOceans #BluePlanet",
+    "call_to_action": "**Take Action for Sustainable Seas:**\n\n1. **Choose Certified Seafood**: Look for MSC (Marine Stewardship Council) certification when buying seafood\n2. **Ask Questions**: When dining out or shopping, ask about fishing methods and sustainability\n3. **Support Sustainable Fisheries**: Purchase from local fishermen using selective methods like pole and line or pots and traps\n4. **Advocate for Change**: Contact policymakers to support science-based fisheries management and sustainable fishing regulations\n5. **Spread Awareness**: Share this information with friends and family to create demand for ocean-friendly seafood\n\nTogether, we can create a future where fishing nourishes communities without destroying marine ecosystems. The solutions exist—let's choose them!",
+    "created_at": "2026-04-07T20:33:13.352080+00:00"
+  },
+  "package": {
+    "id": "pkg-1",
+    "included_statements": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s6",
+      "s7",
+      "s8",
+      "s9",
+      "s10",
+      "s11",
+      "s12",
+      "s13",
+      "s14",
+      "s15",
+      "s16"
+    ],
+    "excluded_statements": [],
+    "verified_statements": 16,
+    "has_content": true,
+    "media_count": 0,
+    "ready_to_publish": true,
+    "assembled_at": "2026-04-07T20:33:26.407353+00:00"
+  },
+  "created_at": "2026-04-07T20:26:04.538436+00:00",
+  "_counters": {
+    "statement": 16,
+    "media": 0,
+    "content": 1,
+    "package": 1
+  }
+}

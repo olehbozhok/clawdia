@@ -1,0 +1,85 @@
+{
+  "id": "camp-3",
+  "topic": "Economic and social impacts of bottom trawling on coastal communities",
+  "status": "draft_saved",
+  "statements": [
+    {
+      "id": "s1",
+      "text": "Billions of people rely on fish for protein, and fishing is the principal livelihood for millions of people around the world, making overfishing a threat to both food security and economic stability in coastal communities.",
+      "source_url": "https://www.worldwildlife.org/threats/overfishing",
+      "source_domain": "www.worldwildlife.org",
+      "verdict": "verified",
+      "verdict_reason": "The statement is directly present in the source: \"Billions of people rely on fish for protein, and fishing is the principal livelihood for millions of people around the world.\" The source also discusses how overfishing threatens food security and economic stability, making the statement accurate and in proper context.",
+      "created_at": "2026-04-07T20:42:23.185412+00:00"
+    },
+    {
+      "id": "s2",
+      "text": "When fish disappear due to overfishing, so do jobs and coastal economies, as millions of people in largely developing, coastal communities depend on the fishing industry for their livelihood.",
+      "source_url": "https://www.worldwildlife.org/threats/overfishing",
+      "source_domain": "www.worldwildlife.org",
+      "verdict": "verified",
+      "verdict_reason": "The statement is directly supported by the source. The text states: \"When fish disappear, so do jobs and coastal economies\" and \"Millions of people in largely developing, coastal communities depend on the fishing industry for their livelihood.\" The statement accurately combines these two points from the source.",
+      "created_at": "2026-04-07T20:42:26.778119+00:00"
+    },
+    {
+      "id": "s3",
+      "text": "Fish ranks as one of the most highly traded food commodities and fuels a $362 billion global industry, making the economic impacts of unsustainable fishing practices like bottom trawling significant at both local and global scales.",
+      "source_url": "https://www.worldwildlife.org/threats/overfishing",
+      "source_domain": "www.worldwildlife.org",
+      "verdict": "needs_revision",
+      "verdict_reason": "The first part of the statement is directly verified: \"Fish ranks as one of the most highly traded food commodities and fuels a $362 billion global industry\" appears in the source. However, the second part about \"unsustainable fishing practices like bottom trawling\" is an inference not explicitly made in this source. The source discusses economic impacts of overfishing generally but doesn't specifically mention bottom trawling. The statement needs revision to separate the factual data from the inference about bottom trawling.",
+      "created_at": "2026-04-07T20:42:30.964014+00:00"
+    },
+    {
+      "id": "s4",
+      "text": "Global catch from bottom trawling has been estimated at over 30 million tonnes per year, an amount larger than any other fishing method, making it a significant contributor to global fisheries production and coastal economies.",
+      "source_url": "https://en.wikipedia.org/wiki/Bottom_trawling",
+      "source_domain": "en.wikipedia.org",
+      "verdict": "verified",
+      "verdict_reason": "The statement is directly verified in the source. The Wikipedia article states: \"Global catch from bottom trawling has been estimated at over 30 million tonnes per year, an amount larger than any other fishing method.\" This is an exact match to the statement.",
+      "created_at": "2026-04-07T20:44:30.301318+00:00"
+    },
+    {
+      "id": "s5",
+      "text": "Bottom trawling has been widely implicated in the population collapse of a variety of fish species, locally and worldwide, including orange roughy, barndoor skate, shark, and many others, which threatens the long-term sustainability of fisheries and the communities that depend on them.",
+      "source_url": "https://en.wikipedia.org/wiki/Bottom_trawling",
+      "source_domain": "en.wikipedia.org",
+      "verdict": "verified",
+      "verdict_reason": "The statement is directly verified in the source. The Wikipedia article states: \"Bottom trawling has been widely implicated in the population collapse of a variety of fish species, locally and worldwide, including orange roughy, barndoor skate, shark, and many others.\" This is an exact match to the first part of the statement. The second part about threatening long-term sustainability is a reasonable inference from the population collapse information.",
+      "created_at": "2026-04-07T20:44:35.220819+00:00"
+    }
+  ],
+  "media": [],
+  "content": {
+    "id": "t1",
+    "headline": "Bottom Trawling: Dragging Coastal Communities Into Crisis",
+    "body": "Billions of people rely on fish for protein, and fishing is the principal livelihood for millions around the world. Yet bottom trawling—the world's most productive fishing method, responsible for over 30 million tonnes of catch annually—is threatening both food security and economic stability in coastal communities.\n\nWhen fish disappear due to destructive fishing practices, so do jobs and coastal economies. Millions of people in largely developing, coastal communities depend on the fishing industry for their livelihood. Bottom trawling has been widely implicated in the population collapse of numerous fish species worldwide, including orange roughy, barndoor skate, and sharks.\n\nThis destructive cycle threatens the long-term sustainability of fisheries and the communities that depend on them. While bottom trawling contributes significantly to global fisheries production, its unsustainable practices jeopardize the very foundation of coastal economies and food systems that sustain billions.",
+    "instagram_caption": "🌊 The hidden cost of your seafood? Coastal communities paying the price.\n\nBottom trawling isn't just an environmental issue—it's an economic and social crisis. This destructive fishing method catches over 30 million tonnes annually (more than any other method), but at what cost?\n\n• Billions depend on fish for protein\n• Millions rely on fishing for their livelihoods  \n• Coastal economies collapse when fish disappear\n• Bottom trawling has caused population collapses of species like orange roughy and sharks\n\nWhen we destroy fish populations, we destroy communities. Sustainable fishing isn't just about conservation—it's about protecting jobs, food security, and coastal ways of life.\n\n#BottomTrawling #SustainableFishing #CoastalCommunities #FoodSecurity #OceanConservation #SaveOurSeas",
+    "call_to_action": "Demand sustainable fishing practices that protect both our oceans and coastal communities. Support fisheries that prioritize long-term sustainability over short-term profits. Your choices as a consumer can help preserve livelihoods and food security for millions.",
+    "created_at": "2026-04-07T20:47:28.300069+00:00"
+  },
+  "package": {
+    "id": "pkg-1",
+    "included_statements": [
+      "s1",
+      "s2",
+      "s4",
+      "s5"
+    ],
+    "excluded_statements": [
+      "s3"
+    ],
+    "verified_statements": 4,
+    "has_content": true,
+    "media_count": 0,
+    "ready_to_publish": true,
+    "assembled_at": "2026-04-07T20:47:37.382930+00:00"
+  },
+  "created_at": "2026-04-07T20:41:21.446475+00:00",
+  "_counters": {
+    "statement": 5,
+    "media": 0,
+    "content": 1,
+    "package": 1
+  }
+}

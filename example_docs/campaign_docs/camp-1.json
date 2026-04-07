@@ -1,0 +1,135 @@
+{
+  "id": "camp-1",
+  "topic": "Impact of bottom trawling on ocean ecosystems",
+  "status": "published",
+  "statements": [
+    {
+      "id": "s1",
+      "text": "Chronic and intensive bottom trawling impairs deep-sea biodiversity and ecosystem functioning, causing significant decreases in organic matter content (up to 52%), slower organic carbon turnover (about 37%), and reduced meiofauna abundance (80%), biodiversity (50%), and nematode species richness (25%).",
+      "source_url": "https://www.pnas.org/doi/10.1073/pnas.1405454111",
+      "source_domain": "www.pnas.org",
+      "verdict": "verified",
+      "verdict_reason": "Statement accurately reflects findings from the PNAS study. The source confirms: 1) Chronic intensive bottom trawling impairs deep-sea biodiversity and ecosystem functioning (title), 2) Decreases in organic matter content up to 52% (abstract), 3) Slower organic carbon turnover about 37% (abstract), 4) Reduced meiofauna abundance 80% (abstract), 5) Reduced biodiversity 50% (abstract), 6) Reduced nematode species richness 25% (Results section). All figures match the source.",
+      "created_at": "2026-04-07T20:14:55.047172+00:00"
+    },
+    {
+      "id": "s2",
+      "text": "Bottom trawling along continental slopes has a major impact on deep-sea sedimentary ecosystems, causing their degradation and infaunal depauperation, with deep-sea fisheries causing the collapse of benthic biodiversity and ecosystem functions.",
+      "source_url": "https://www.pnas.org/doi/10.1073/pnas.1405454111",
+      "source_domain": "www.pnas.org",
+      "verdict": "verified",
+      "verdict_reason": "Statement is directly quoted from the Significance section of the PNAS article: \"We show here that bottom trawling along continental slopes has a major impact on deep-sea sedimentary ecosystems, causing their degradation and infaunal depauperation. Deep-sea fisheries, indeed, cause the collapse of benthic biodiversity and ecosystem functions.\" Exact match with source.",
+      "created_at": "2026-04-07T20:14:59.550880+00:00"
+    },
+    {
+      "id": "s3",
+      "text": "The organic carbon removed daily by trawling in the northwestern Mediterranean Sea represents as much as 60–100% of the input flux, indicating that trawling represents a major threat to deep-sea floor ecosystems at the global scale.",
+      "source_url": "https://www.pnas.org/doi/10.1073/pnas.1405454111",
+      "source_domain": "www.pnas.org",
+      "verdict": "verified",
+      "verdict_reason": "Statement is directly from the abstract of the PNAS article: \"We estimate that the organic carbon removed daily by trawling in the region under scrutiny represents as much as 60–100% of the input flux.\" and \"we conclude that trawling represents a major threat to the deep seafloor ecosystem at the global scale.\" Exact match with source.",
+      "created_at": "2026-04-07T20:15:05.424684+00:00"
+    },
+    {
+      "id": "s4",
+      "text": "Bottom trawling releases significant amounts of carbon dioxide from seafloor sediments into the water column and atmosphere, with studies showing that ending bottom trawling could provide substantial carbon benefits for climate change mitigation.",
+      "source_url": "https://www.nature.com/articles/s41586-021-03371-z",
+      "source_domain": "www.nature.com",
+      "verdict": "needs_revision",
+      "verdict_reason": "The source article discusses securing marine carbon stocks at risk from human activities and references bottom trawling impacts, but the specific claim about 'releases significant amounts of carbon dioxide from seafloor sediments into the water column and atmosphere' is not explicitly visible in the accessible content. The article has a 'Matters Arising' section addressing 'Quantifying the carbon benefits of ending bottom trawling' which suggests related discussion, but the exact wording may need adjustment to more closely match the source's language about 'securing marine carbon stocks at risk from human activities.'",
+      "created_at": "2026-04-07T20:15:22.537878+00:00"
+    },
+    {
+      "id": "s5",
+      "text": "Marine protected areas (MPAs) are an effective alternative to destructive fishing practices like bottom trawling, providing triple benefits by protecting biodiversity, boosting fisheries yields through spillover effects, and securing marine carbon stocks.",
+      "source_url": "https://www.nature.com/articles/s41586-021-03371-z",
+      "source_domain": "www.nature.com",
+      "verdict": "verified",
+      "verdict_reason": "The source article explicitly states: 'We find that a substantial increase in ocean protection could have triple benefits, by protecting biodiversity, boosting the yield of fisheries and securing marine carbon stocks that are at risk from human activities.' This directly matches the statement about MPAs providing triple benefits by protecting biodiversity, boosting fisheries yields, and securing marine carbon stocks. The article also discusses MPAs as an effective tool for restoring ocean biodiversity and ecosystem services.",
+      "created_at": "2026-04-07T20:16:06.144591+00:00"
+    },
+    {
+      "id": "s6",
+      "text": "Marine sediments store 2,322 petagrams of carbon in the top 1 meter, nearly twice that of terrestrial soils, making them the largest pool of sediment/soil carbon stocks in the world.",
+      "source_url": "https://www.frontiersin.org/articles/10.3389/fmars.2020.00165/full",
+      "source_domain": "www.frontiersin.org",
+      "verdict": "verified",
+      "verdict_reason": "The article states: \"We found that the global ocean stores 2322 Pg of C in the top 1 m\" and \"This estimate makes the ocean the largest pool of sediment/soil C stocks in the world, with 1.75 times greater C stocks than the top 1 m of terrestrial soils.\" Table 2 confirms 2322 Pg C for marine sediments vs 1258 Pg C for terrestrial soils. The statement accurately reflects the source data.",
+      "created_at": "2026-04-07T20:16:28.703801+00:00"
+    },
+    {
+      "id": "s7",
+      "text": "Only about 2% of marine sediment carbon stocks are located in highly to fully protected areas that prevent seafloor disturbance, making these carbon stocks highly vulnerable to human activities like bottom trawling.",
+      "source_url": "https://www.frontiersin.org/articles/10.3389/fmars.2020.00165/full",
+      "source_domain": "www.frontiersin.org",
+      "verdict": "verified",
+      "verdict_reason": "The article states in the Abstract: \"Currently, only ∼2% of sediment C stocks are located in highly to fully protected areas that prevent the disturbance of the seafloor\" and in Discussion: \"only 2% (48 Pg C) occur in highly protected MPAs.\" It also states: \"The lack of protection for marine C stocks makes them highly vulnerable to human disturbances that can lead to their remineralization to CO2.\" The statement accurately reflects the source.",
+      "created_at": "2026-04-07T20:16:33.090635+00:00"
+    },
+    {
+      "id": "s8",
+      "text": "Bottom trawling and other seafloor disturbances can remineralize sediment carbon to CO2, potentially exacerbating climate change, with organic-rich coastal sediments along continental shelves being particularly vulnerable to such disturbances.",
+      "source_url": "https://www.frontiersin.org/articles/10.3389/fmars.2020.00165/full",
+      "source_domain": "www.frontiersin.org",
+      "verdict": "verified",
+      "verdict_reason": "The article states: \"The lack of protection for marine C stocks makes them highly vulnerable to human disturbances that can lead to their remineralization to CO2, further aggravating climate change impacts\" (Abstract). It also states: \"In general, organic-rich coastal sediments along the continental shelf... are hypothesized to be the most sensitive to disturbances\" and mentions bottom trawling specifically as a threat. The statement accurately summarizes these findings.",
+      "created_at": "2026-04-07T20:16:37.807009+00:00"
+    },
+    {
+      "id": "s9",
+      "text": "Sustainable alternatives to bottom trawling include input controls (limiting fishing effort through vessel capacity restrictions and days at sea limits) and output controls (catch quotas and total allowable catches), along with selective fishing gear that minimizes bycatch and habitat damage.",
+      "source_url": "https://www.fao.org/3/y3427e/y3427e06.htm",
+      "source_domain": "www.fao.org",
+      "verdict": "needs_revision",
+      "verdict_reason": "The FAO document discusses input controls (vessel capacity restrictions, days at sea limits) and output controls (catch quotas, total allowable catches) as general fisheries management tools, not specifically as 'sustainable alternatives to bottom trawling.' While the technical definitions are accurate, the source does not frame these as alternatives to bottom trawling. The document is a general guide on fisheries management approaches that can apply to various fishing methods including trawling, not a discussion of alternatives to trawling specifically. The statement should be revised to more accurately reflect that these are general fisheries management approaches rather than specific alternatives to bottom trawling.",
+      "created_at": "2026-04-07T20:16:58.139422+00:00"
+    },
+    {
+      "id": "s10",
+      "text": "With deep-sea trawling currently conducted along most continental margins worldwide, bottom trawling represents a major global threat to deep-sea floor ecosystems, biodiversity, and climate stability due to its impacts on sediment carbon stocks and benthic communities.",
+      "source_url": "https://www.frontiersin.org/articles/10.3389/fmars.2020.00165/full",
+      "source_domain": "www.frontiersin.org",
+      "verdict": "needs_revision",
+      "verdict_reason": "The article discusses bottom trawling as a threat to sediment carbon stocks and mentions deep-sea trawling, but does not quantify it as occurring along 'most continental margins worldwide.' The core concepts about threat to ecosystems and climate stability are supported, but the specific quantification needs revision. The article states bottom trawling is an 'expanding human activity' that threatens sediment carbon, but doesn't provide the geographic extent claimed.",
+      "created_at": "2026-04-07T20:17:08.496677+00:00"
+    }
+  ],
+  "media": [],
+  "content": {
+    "id": "t1",
+    "headline": "The Ocean's Hidden Crisis: How Bottom Trawling Destroys Biodiversity and Fuels Climate Change",
+    "body": "Beneath the waves, a silent destruction is unfolding. Bottom trawling—dragging heavy nets across the seafloor—is causing catastrophic damage to deep-sea ecosystems on a global scale. Scientific research reveals that chronic bottom trawling along continental slopes causes the collapse of benthic biodiversity and ecosystem functions, with deep-sea fisheries leading to infaunal depauperation and ecosystem degradation.\n\nThe numbers are staggering: bottom trawling reduces meiofauna abundance by 80%, cuts biodiversity by 50%, decreases organic matter content by up to 52%, and slows organic carbon turnover by about 37%. In the northwestern Mediterranean Sea alone, the organic carbon removed daily by trawling represents 60-100% of the natural input flux.\n\nThis destruction threatens one of Earth's most critical carbon stores. Marine sediments store 2,322 petagrams of carbon in the top 1 meter—nearly twice that of terrestrial soils—making them the largest pool of sediment/soil carbon stocks in the world. Yet only about 2% of these vital carbon stocks are located in protected areas that prevent seafloor disturbance. Bottom trawling and other seafloor disturbances can remineralize this stored carbon to CO2, potentially exacerbating climate change.\n\nThere is hope. Marine protected areas (MPAs) offer an effective alternative to destructive fishing practices, providing triple benefits: protecting biodiversity, boosting fisheries yields through spillover effects, and securing marine carbon stocks at risk from human activities.",
+    "instagram_caption": "🌊 The ocean floor is being scraped bare. Bottom trawling destroys 80% of tiny sea creatures, cuts biodiversity in half, and threatens our planet's largest carbon store.\n\n🔍 SCIENCE SAYS:\n• 80% reduction in meiofauna abundance\n• 50% decrease in biodiversity\n• 52% less organic matter\n• 37% slower carbon turnover\n• Removes 60-100% of daily carbon input in some regions\n\n💡 The ocean stores 2,322 petagrams of carbon—nearly DOUBLE terrestrial soils—but only 2% is protected from seafloor destruction.\n\n🛡️ Marine Protected Areas offer triple benefits: protect biodiversity, boost fisheries, and secure carbon stocks.\n\n🌍 Our ocean's health affects us all. It's time to protect what we can't see but desperately need.\n\n#SaveOurSeas #BottomTrawling #OceanConservation #MarineProtectedAreas #ClimateAction #BiodiversityCrisis",
+    "call_to_action": "Join the movement to protect our ocean's fragile ecosystems. Support policies that establish marine protected areas and ban destructive bottom trawling in vulnerable regions. Contact your representatives to advocate for ocean conservation measures that protect biodiversity, secure carbon stores, and promote sustainable fishing practices. Together, we can preserve the ocean's vital ecosystems for future generations.",
+    "created_at": "2026-04-07T20:23:18.808142+00:00"
+  },
+  "package": {
+    "id": "pkg-1",
+    "included_statements": [
+      "s1",
+      "s2",
+      "s3",
+      "s5",
+      "s6",
+      "s7",
+      "s8"
+    ],
+    "excluded_statements": [
+      "s4",
+      "s9",
+      "s10"
+    ],
+    "verified_statements": 7,
+    "has_content": true,
+    "media_count": 0,
+    "ready_to_publish": true,
+    "assembled_at": "2026-04-07T20:23:30.821353+00:00"
+  },
+  "created_at": "2026-04-07T20:13:49.407725+00:00",
+  "_counters": {
+    "statement": 10,
+    "media": 0,
+    "content": 1,
+    "package": 1
+  }
+}

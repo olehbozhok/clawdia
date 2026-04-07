@@ -1,0 +1,40 @@
+# MCP Server Configuration
+# Supported transport types: stdio, http
+
+servers:
+  # filesystem:
+  #   transport: stdio
+  #   command: npx
+  #   args:
+  #     - "-y"
+  #     - "@modelcontextprotocol/server-filesystem"
+  #     - "."
+  #   env: {}
+
+  campaign-doc:
+    transport: stdio
+    command: uv
+    args:
+      - "run"
+      - "--project"
+      - "../mcp/campaign-doc"
+      - "python"
+      - "../mcp/campaign-doc/server.py"
+    env: { CAMPAIGN_DOC_STORAGE_DIR: "../.tmp/campaign_docs" }
+
+  duckduckgo:
+    transport: stdio
+    command: uvx
+    args:
+      - "duckduckgo-mcp-server"
+
+  chrome-mcp:
+    transport: http
+    url: http://127.0.0.1:12306/mcp
+
+  # Example: HTTP-based MCP server
+  # remote-tools:
+  #   transport: http
+  #   url: http://localhost:8080/mcp
+  #   headers:
+  #     Authorization: "Bearer ${MCP_TOKEN}"

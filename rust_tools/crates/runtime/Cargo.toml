@@ -1,0 +1,20 @@
+[package]
+name = "runtime"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tools = { workspace = true }
+
+rig-core = { workspace = true }
+rmcp = { workspace = true }
+http = { workspace = true }
+reqwest = { workspace = true }
+
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+schemars = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
