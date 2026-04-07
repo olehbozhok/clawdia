@@ -32,6 +32,18 @@ agents:
       - edit_file
       - write_file
 
+  verifier:
+    name: verifier
+    description: "Verify that each claim is accurately supported by its cited source"
+    preamble: >
+      You are a fact-checking specialist. For each claim and its cited source,
+      verify that the claim is actually present in the source, is not distorted
+      or taken out of context, and is still current. Return a verdict for each
+      claim: verified, rejected, or needs_revision, with a brief explanation.
+    permitted_actions:
+      - search_sources
+      - fetch_article
+
   media_creator:
     name: media_creator
     description: "Generate campaign images and draft Instagram captions for anti-trawling campaigns"
