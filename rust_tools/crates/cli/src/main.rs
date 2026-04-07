@@ -2,12 +2,39 @@ mod commands;
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
+
+#[derive(Debug, Clone, ValueEnum)]
+enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+    Off,
+}
+
+impl From<LogLevel> for tracing_subscriber::filter::LevelFilter {
+    fn from(level: LogLevel) -> Self {
+        match level {
+            LogLevel::Trace => Self::TRACE,
+            LogLevel::Debug => Self::DEBUG,
+            LogLevel::Info => Self::INFO,
+            LogLevel::Warn => Self::WARN,
+            LogLevel::Error => Self::ERROR,
+            LogLevel::Off => Self::OFF,
+        }
+    }
+}
 
 #[derive(Parser)]
 #[command(name = "clawdia")]
 #[command(about = "Clawdia Schiffer — policy-governed AI agent CLI")]
 struct Cli {
+    /// Log level
+    #[arg(long, env = "LOG_LEVEL", default_value = "info")]
+    log_level: LogLevel,
+
     /// Path to MCP servers config
     #[arg(long, env = "MCP_CONFIG", default_value = "config/mcp_servers.yaml")]
     mcp_config: PathBuf,
@@ -48,15 +75,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cli = Cli::parse();
 
-    // Suppress tracing output when JSON output is requested
-    let json_mode = matches!(cli.command, Command::Tools { json: true });
-    if json_mode {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing_subscriber::filter::LevelFilter::ERROR)
-            .init();
-    } else {
-        tracing_subscriber::fmt::init();
-    }
+    let level: tracing_subscriber::filter::LevelFilter = cli.log_level.into();
+    tracing_subscriber::fmt().with_max_level(level).init();
 
     match cli.command {
         Command::Chat => {
