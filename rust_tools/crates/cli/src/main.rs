@@ -33,17 +33,30 @@ enum Command {
     /// Start interactive chat with the orchestrator agent
     Chat,
     /// List all available tools from connected MCP servers
-    Tools,
+    Tools {
+        /// Output full tool definitions as JSON (includes input schemas)
+        #[arg(long)]
+        json: bool,
+    },
     /// List configured agents and their permitted actions
     Agents,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
     dotenvy::dotenv().ok();
 
     let cli = Cli::parse();
+
+    // Suppress tracing output when JSON output is requested
+    let json_mode = matches!(cli.command, Command::Tools { json: true });
+    if json_mode {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing_subscriber::filter::LevelFilter::ERROR)
+            .init();
+    } else {
+        tracing_subscriber::fmt::init();
+    }
 
     match cli.command {
         Command::Chat => {
@@ -55,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             )
             .await
         }
-        Command::Tools => commands::tools(&cli.mcp_config).await,
+        Command::Tools { json } => commands::tools(&cli.mcp_config, json).await,
         Command::Agents => commands::agents(&cli.agents_config),
     }
 }

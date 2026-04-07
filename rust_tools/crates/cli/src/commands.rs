@@ -46,21 +46,36 @@ pub async fn chat(
     Ok(())
 }
 
-pub async fn tools(mcp_config: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn tools(mcp_config: &Path, json: bool) -> Result<(), Box<dyn std::error::Error>> {
     let (servers, running_services) = runtime::mcp::connect_all(mcp_config).await?;
 
-    println!("Available tools from MCP servers:\n");
-
-    for server in &servers {
-        println!("  [{name}]", name = server.name);
-        for tool in &server.tools {
-            let desc = tool.description.as_deref().unwrap_or("(no description)");
-            println!("    - {name}", name = tool.name);
-            println!("      {desc}\n");
+    if json {
+        let mut output = serde_json::Map::new();
+        for server in &servers {
+            let tools: Vec<serde_json::Value> = server
+                .tools
+                .iter()
+                .map(|t| serde_json::to_value(t).unwrap_or_default())
+                .collect();
+            output.insert(server.name.clone(), serde_json::Value::Array(tools));
         }
+        // Write JSON to stdout; tracing goes to stderr via subscriber config
+        print!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::Value::Object(output))?
+        );
+    } else {
+        println!("Available tools from MCP servers:\n");
+        for server in &servers {
+            println!("  [{name}]", name = server.name);
+            for tool in &server.tools {
+                let desc = tool.description.as_deref().unwrap_or("(no description)");
+                println!("    - {name}", name = tool.name);
+                println!("      {desc}\n");
+            }
+        }
+        println!("Copy tool names into agents.yaml → permitted_actions to grant access.");
     }
-
-    println!("Copy tool names into agents.yaml → permitted_actions to grant access.");
 
     for svc in running_services {
         svc.cancel().await?;
