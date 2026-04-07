@@ -36,13 +36,12 @@ pub fn load_config(path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
     Ok(serde_yaml::from_str(&content)?)
 }
 
+const DEFAULT_MAX_TURNS: usize = 40;
+
 // ── Tool filtering ──
 
 /// Filter MCP tools to only include those in the permitted actions list.
-pub fn filter_tools(
-    tools: Vec<rmcp::model::Tool>,
-    permitted: &[String],
-) -> Vec<rmcp::model::Tool> {
+pub fn filter_tools(tools: Vec<rmcp::model::Tool>, permitted: &[String]) -> Vec<rmcp::model::Tool> {
     tools
         .into_iter()
         .filter(|t| permitted.iter().any(|p| p.as_str() == t.name.as_ref()))
@@ -79,7 +78,7 @@ pub fn build_agent<C: CompletionClient + 'static>(
         .preamble(&config.preamble)
         .name(&config.name)
         .description(&config.description)
-        .default_max_turns(20)
+        .default_max_turns(DEFAULT_MAX_TURNS)
         .hook(hook);
 
     // Attach filtered MCP tools
@@ -139,7 +138,7 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
         .preamble(&config.orchestrator.preamble)
         .name(&config.orchestrator.name)
         .description(&config.orchestrator.description)
-        .default_max_turns(20)
+        .default_max_turns(DEFAULT_MAX_TURNS)
         .hook(hook);
 
     // Attach filtered MCP tools
@@ -251,20 +250,14 @@ impl<M: CompletionModel + 'static> Tool for VerboseAgent<M> {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        println!(
-            "\n  ┌─ 🤖 Sub-agent [{label}] invoked",
-            label = self.label
-        );
+        println!("\n  ┌─ 🤖 Sub-agent [{label}] invoked", label = self.label);
 
         let result = self.inner.prompt(args.prompt).await;
         match &result {
             Ok(response) => {
                 let preview = truncate(response, 200);
                 println!("  │  Response: {preview}");
-                println!(
-                    "  └─ ✅ Sub-agent [{label}] done\n",
-                    label = self.label
-                );
+                println!("  └─ ✅ Sub-agent [{label}] done\n", label = self.label);
             }
             Err(e) => {
                 println!(
