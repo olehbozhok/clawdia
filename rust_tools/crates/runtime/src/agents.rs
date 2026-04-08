@@ -21,12 +21,22 @@ pub struct Config {
     pub agents: HashMap<String, AgentConfig>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthzMode {
+    #[default]
+    Cedarling,
+    Yaml,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentConfig {
     pub name: String,
     #[serde(default)]
     pub description: String,
     pub preamble: String,
+    #[serde(default)]
+    pub authz_mode: AuthzMode,
     #[serde(default)]
     pub permitted_actions: Vec<String>,
 }
@@ -357,6 +367,7 @@ mod tests {
             name: "orchestrator".into(),
             description: String::new(),
             preamble: String::new(),
+            authz_mode: AuthzMode::default(),
             permitted_actions: vec!["read_file".into(), "list_directory".into()],
         };
 
@@ -377,6 +388,7 @@ mod tests {
             name: "researcher".into(),
             description: "test".into(),
             preamble: String::new(),
+            authz_mode: AuthzMode::default(),
             permitted_actions: vec!["read_file".into(), "search_files".into()],
         };
 
@@ -397,6 +409,7 @@ mod tests {
             name: "media_creator".into(),
             description: "test".into(),
             preamble: String::new(),
+            authz_mode: AuthzMode::default(),
             permitted_actions: vec![],
         };
 
@@ -411,6 +424,7 @@ mod tests {
             name: "researcher".into(),
             description: "test".into(),
             preamble: String::new(),
+            authz_mode: AuthzMode::default(),
             permitted_actions: vec!["read_file".into()],
         };
 
@@ -423,5 +437,42 @@ mod tests {
         let filtered = filter_tools(all_tools, &config.permitted_actions);
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name.as_ref(), "read_file");
+    }
+
+    // ── authz_mode ──
+
+    #[test]
+    fn authz_mode_defaults_to_cedarling() {
+        let yaml = r#"
+            name: test
+            preamble: "test"
+        "#;
+        let config: AgentConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.authz_mode, AuthzMode::Cedarling);
+    }
+
+    #[test]
+    fn authz_mode_yaml_explicit() {
+        let yaml = r#"
+            name: test
+            preamble: "test"
+            authz_mode: yaml
+            permitted_actions:
+              - read_file
+        "#;
+        let config: AgentConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.authz_mode, AuthzMode::Yaml);
+        assert_eq!(config.permitted_actions, vec!["read_file"]);
+    }
+
+    #[test]
+    fn authz_mode_cedarling_explicit() {
+        let yaml = r#"
+            name: test
+            preamble: "test"
+            authz_mode: cedarling
+        "#;
+        let config: AgentConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.authz_mode, AuthzMode::Cedarling);
     }
 }
