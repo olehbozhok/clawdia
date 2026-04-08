@@ -164,7 +164,10 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
     let full_preamble = if orchestrator_preamble.is_empty() {
         config.orchestrator.preamble.clone()
     } else {
-        format!("{}\n{}", config.orchestrator.preamble, orchestrator_preamble)
+        format!(
+            "{}\n{}",
+            config.orchestrator.preamble, orchestrator_preamble
+        )
     };
 
     let base = client

@@ -39,9 +39,7 @@ fn collect_cedar_files(
     base: &Path,
     agent_permissions: &mut HashMap<String, Vec<PermissionEntry>>,
 ) -> Result<()> {
-    for entry in std::fs::read_dir(dir)
-        .with_context(|| format!("reading {}", dir.display()))?
-    {
+    for entry in std::fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))? {
         let entry = entry?;
         let path = entry.path();
 
@@ -101,7 +99,10 @@ fn parse_single_policy_annotations(content: &str) -> Option<PermissionEntry> {
     }
 
     match (tool, description) {
-        (Some(t), Some(d)) => Some(PermissionEntry { tool: t, description: d }),
+        (Some(t), Some(d)) => Some(PermissionEntry {
+            tool: t,
+            description: d,
+        }),
         _ => None,
     }
 }
@@ -203,8 +204,8 @@ permit(
     // Integration test using real policy files
     #[test]
     fn load_permissions_from_real_policies() {
-        let policy_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../config/policies");
+        let policy_dir =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config/policies");
 
         if !policy_dir.exists() {
             eprintln!("Skipping: policy dir not found");
@@ -214,14 +215,24 @@ permit(
         let perms = load_permissions_from_policies(&policy_dir).unwrap();
 
         // researcher should have entries
-        let researcher = perms.get("researcher").expect("researcher should have permissions");
-        assert!(researcher.len() >= 5, "researcher should have at least 5 tools");
+        let researcher = perms
+            .get("researcher")
+            .expect("researcher should have permissions");
+        assert!(
+            researcher.len() >= 5,
+            "researcher should have at least 5 tools"
+        );
 
         // check a specific one exists
-        assert!(researcher.iter().any(|e| e.tool == "search"), "researcher should have search tool");
+        assert!(
+            researcher.iter().any(|e| e.tool == "search"),
+            "researcher should have search tool"
+        );
 
         // copywriter should have entries
-        let copywriter = perms.get("copywriter").expect("copywriter should have permissions");
+        let copywriter = perms
+            .get("copywriter")
+            .expect("copywriter should have permissions");
         assert!(copywriter.iter().any(|e| e.tool == "doc_write_content"));
 
         // orchestrator should have entries

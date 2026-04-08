@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use rig::completion::Prompt;
 use rig::providers::deepseek;
-use runtime::agents::{self, AuthzMode, AuditLog};
+use runtime::agents::{self, AuditLog, AuthzMode};
 use runtime::authz_hook::AuthzBackend;
 use runtime::cedar_authz::CedarAuthz;
 use runtime::policy_prompt;
@@ -24,7 +24,10 @@ pub async fn chat(
     let client = deepseek::Client::new(api_key)?;
 
     let needs_cedar = config.orchestrator.authz_mode == AuthzMode::Cedarling
-        || config.agents.values().any(|a| a.authz_mode == AuthzMode::Cedarling);
+        || config
+            .agents
+            .values()
+            .any(|a| a.authz_mode == AuthzMode::Cedarling);
 
     let cedar = if needs_cedar && policy_store.exists() {
         match CedarAuthz::from_directory(policy_store).await {

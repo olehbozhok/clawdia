@@ -229,23 +229,15 @@ mod tests {
 
     // ── sub-agent delegation ──
 
-    fn make_hook_with_sub_agents(
-        name: &str,
-        permitted: &[&str],
-        sub_agents: &[&str],
-    ) -> AuthzHook {
-        make_hook(name, permitted).with_sub_agent_tools(
-            sub_agents.iter().map(|s| s.to_string()).collect(),
-        )
+    fn make_hook_with_sub_agents(name: &str, permitted: &[&str], sub_agents: &[&str]) -> AuthzHook {
+        make_hook(name, permitted)
+            .with_sub_agent_tools(sub_agents.iter().map(|s| s.to_string()).collect())
     }
 
     #[test]
     fn registered_sub_agent_tool_is_allowed() {
-        let hook = make_hook_with_sub_agents(
-            "orchestrator",
-            &[],
-            &["agent_researcher", "agent_verifier"],
-        );
+        let hook =
+            make_hook_with_sub_agents("orchestrator", &[], &["agent_researcher", "agent_verifier"]);
         assert_eq!(
             hook.authorize("agent_researcher", "{}").decision,
             AuthorizationDecision::Allow
@@ -258,11 +250,8 @@ mod tests {
 
     #[test]
     fn unregistered_sub_agent_tool_is_denied() {
-        let hook = make_hook_with_sub_agents(
-            "orchestrator",
-            &["doc_create"],
-            &["agent_researcher"],
-        );
+        let hook =
+            make_hook_with_sub_agents("orchestrator", &["doc_create"], &["agent_researcher"]);
         assert_eq!(
             hook.authorize("agent_copywriter", "{}").decision,
             AuthorizationDecision::Deny
@@ -271,11 +260,7 @@ mod tests {
 
     #[test]
     fn sub_agent_tools_do_not_bypass_regular_tool_deny() {
-        let hook = make_hook_with_sub_agents(
-            "orchestrator",
-            &[],
-            &["agent_researcher"],
-        );
+        let hook = make_hook_with_sub_agents("orchestrator", &[], &["agent_researcher"]);
         assert_eq!(
             hook.authorize("doc_create", "{}").decision,
             AuthorizationDecision::Deny
@@ -321,7 +306,12 @@ mod tests {
             principal_type: "orchestrator".into(),
             delegation_record_id: None,
         };
-        let hook = AuthzHook::new(principal, vec!["read_file".into()], audit_log.clone(), AuthzBackend::Yaml);
+        let hook = AuthzHook::new(
+            principal,
+            vec!["read_file".into()],
+            audit_log.clone(),
+            AuthzBackend::Yaml,
+        );
 
         hook.authorize("read_file", "{}");
         hook.authorize("write_file", "{}");
@@ -396,6 +386,9 @@ mod tests {
 
     #[test]
     fn truncate_replaces_newlines() {
-        assert_eq!(truncate_str("line1\nline2\nline3", 100), "line1 line2 line3");
+        assert_eq!(
+            truncate_str("line1\nline2\nline3", 100),
+            "line1 line2 line3"
+        );
     }
 }

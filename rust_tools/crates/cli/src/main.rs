@@ -52,7 +52,11 @@ struct Cli {
     model: String,
 
     /// Path to Cedar policy store directory
-    #[arg(long, env = "CLAWDIA_POLICY_STORE_PATH", default_value = "config/policies")]
+    #[arg(
+        long,
+        env = "CLAWDIA_POLICY_STORE_PATH",
+        default_value = "config/policies"
+    )]
     policy_store: PathBuf,
 
     #[command(subcommand)]
