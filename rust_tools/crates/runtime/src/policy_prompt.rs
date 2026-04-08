@@ -13,8 +13,10 @@ pub struct PermissionEntry {
 /// Parse all `.cedar` files in a policies directory, extract @tool and @description
 /// annotations, and return entries grouped by agent name.
 ///
-/// Agent name is derived from the filename prefix before the first `-`.
-/// E.g., `researcher-search.cedar` → agent "researcher".
+/// Agent name is derived from the **subdirectory name** when policies are organized
+/// in subdirectories: `policies/researcher/search.cedar` → agent "researcher".
+/// Falls back to filename prefix before the first `-` for flat files:
+/// `policies/researcher-search.cedar` → agent "researcher".
 pub fn load_permissions_from_policies(
     policy_store_dir: &Path,
 ) -> Result<HashMap<String, Vec<PermissionEntry>>> {
@@ -25,39 +27,63 @@ pub fn load_permissions_from_policies(
         return Ok(agent_permissions);
     }
 
-    for entry in std::fs::read_dir(&policies_path)
-        .with_context(|| format!("reading {}", policies_path.display()))?
+    collect_cedar_files(&policies_path, &policies_path, &mut agent_permissions)?;
+
+    Ok(agent_permissions)
+}
+
+/// Recursively collect .cedar files from `dir`, deriving agent names from
+/// subdirectory names (relative to `base`) or filename prefixes.
+fn collect_cedar_files(
+    dir: &Path,
+    base: &Path,
+    agent_permissions: &mut HashMap<String, Vec<PermissionEntry>>,
+) -> Result<()> {
+    for entry in std::fs::read_dir(dir)
+        .with_context(|| format!("reading {}", dir.display()))?
     {
         let entry = entry?;
         let path = entry.path();
+
+        if path.is_dir() {
+            collect_cedar_files(&path, base, agent_permissions)?;
+            continue;
+        }
+
         if path.extension().and_then(|e| e.to_str()) != Some("cedar") {
             continue;
         }
 
-        let filename = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("");
-
-        // Agent name is prefix before first '-'
-        let agent_name = filename
-            .split('-')
-            .next()
-            .unwrap_or(filename)
-            .to_string();
+        // Derive agent name: prefer subdirectory name, fall back to filename prefix
+        let agent_name = if let Some(parent) = path.parent() {
+            if parent != base {
+                // In a subdirectory — use dir name as agent name
+                parent
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_string()
+            } else {
+                // Flat file — use filename prefix before first '-'
+                let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+                filename.split('-').next().unwrap_or(filename).to_string()
+            }
+        } else {
+            let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            filename.split('-').next().unwrap_or(filename).to_string()
+        };
 
         let content = std::fs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
 
-        if let Some(entry) = parse_single_policy_annotations(&content) {
+        if let Some(perm_entry) = parse_single_policy_annotations(&content) {
             agent_permissions
                 .entry(agent_name)
                 .or_default()
-                .push(entry);
+                .push(perm_entry);
         }
     }
-
-    Ok(agent_permissions)
+    Ok(())
 }
 
 /// Parse @tool and @description annotations from a single-policy Cedar file.
@@ -115,8 +141,8 @@ mod tests {
 @tool("search")
 permit(
   principal == AgentPolicy::Agent::"researcher",
-  action == AgentPolicy::Action::"web_fetch",
-  resource == AgentPolicy::Tool::"search"
+  action == AgentPolicy::Action::"search",
+  resource == AgentPolicy::System::"clawdia"
 );
 "#;
         let entry = parse_single_policy_annotations(cedar).unwrap();
@@ -130,8 +156,8 @@ permit(
 @tool("search")
 permit(
   principal == AgentPolicy::Agent::"researcher",
-  action == AgentPolicy::Action::"web_fetch",
-  resource == AgentPolicy::Tool::"search"
+  action == AgentPolicy::Action::"search",
+  resource == AgentPolicy::System::"clawdia"
 );
 "#;
         assert!(parse_single_policy_annotations(cedar).is_none());
@@ -143,8 +169,8 @@ permit(
 @description("Can search")
 permit(
   principal == AgentPolicy::Agent::"researcher",
-  action == AgentPolicy::Action::"web_fetch",
-  resource == AgentPolicy::Tool::"search"
+  action == AgentPolicy::Action::"search",
+  resource == AgentPolicy::System::"clawdia"
 );
 "#;
         assert!(parse_single_policy_annotations(cedar).is_none());

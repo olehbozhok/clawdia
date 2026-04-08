@@ -3,38 +3,95 @@ namespace AgentPolicy {
     agent_type: String,
   };
 
-  entity Tool = {
-    tool_type: String,
-    domain: String,
+  entity System;
+
+  action "search" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: {}
   };
 
-  action "web_fetch" appliesTo {
+  action "fetch_content" appliesTo {
     principal: [Agent],
-    resource: [Tool],
-    context: {
-      requested_domain?: String,
-    }
+    resource: [System],
+    context: { requested_domain?: String }
   };
 
-  action "campaign_write" appliesTo {
+  action "chrome_get_web_content" appliesTo {
     principal: [Agent],
-    resource: [Tool],
-    context: {
-      campaign_id?: String,
-    }
+    resource: [System],
+    context: { requested_domain?: String }
   };
 
-  action "campaign_read" appliesTo {
+  action "doc_create" appliesTo {
     principal: [Agent],
-    resource: [Tool],
-    context: {
-      campaign_id?: String,
-    }
+    resource: [System],
+    context: {}
   };
 
-  action "campaign_manage" appliesTo {
+  action "doc_add_statement" appliesTo {
     principal: [Agent],
-    resource: [Tool],
+    resource: [System],
+    context: { campaign_id?: String }
+  };
+
+  action "doc_set_verdict" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: { campaign_id?: String }
+  };
+
+  action "doc_write_content" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: { campaign_id?: String }
+  };
+
+  action "doc_get_verified" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: { campaign_id?: String }
+  };
+
+  action "doc_list" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: {}
+  };
+
+  action "doc_list_statements" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: { campaign_id?: String }
+  };
+
+  action "doc_status" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: {}
+  };
+
+  action "doc_get" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: { campaign_id?: String }
+  };
+
+  action "doc_assemble" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: {}
+  };
+
+  action "doc_publish_draft" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: {}
+  };
+
+  action "doc_publish_live" appliesTo {
+    principal: [Agent],
+    resource: [System],
     context: {}
   };
 }

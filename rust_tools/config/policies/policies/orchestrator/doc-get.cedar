@@ -3,6 +3,6 @@
 @tool("doc_get")
 permit(
   principal == AgentPolicy::Agent::"orchestrator",
-  action == AgentPolicy::Action::"campaign_read",
-  resource == AgentPolicy::Tool::"doc_get"
+  action == AgentPolicy::Action::"doc_get",
+  resource == AgentPolicy::System::"clawdia"
 );

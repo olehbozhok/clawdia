@@ -1,8 +1,8 @@
-// @id("copywriter-get-verified")
+// @id("copywriter-doc-get-verified")
 @description("Copywriter can retrieve verified statements for a campaign")
 @tool("doc_get_verified")
 permit(
   principal == AgentPolicy::Agent::"copywriter",
-  action == AgentPolicy::Action::"campaign_read",
-  resource == AgentPolicy::Tool::"doc_get_verified"
+  action == AgentPolicy::Action::"doc_get_verified",
+  resource == AgentPolicy::System::"clawdia"
 );

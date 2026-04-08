@@ -3,6 +3,6 @@
 @tool("doc_assemble")
 permit(
   principal == AgentPolicy::Agent::"orchestrator",
-  action == AgentPolicy::Action::"campaign_manage",
-  resource == AgentPolicy::Tool::"doc_assemble"
+  action == AgentPolicy::Action::"doc_assemble",
+  resource == AgentPolicy::System::"clawdia"
 );

@@ -3,6 +3,6 @@
 @tool("search")
 permit(
   principal == AgentPolicy::Agent::"researcher",
-  action == AgentPolicy::Action::"web_fetch",
-  resource == AgentPolicy::Tool::"search"
+  action == AgentPolicy::Action::"search",
+  resource == AgentPolicy::System::"clawdia"
 );
