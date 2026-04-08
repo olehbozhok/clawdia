@@ -1,5 +1,9 @@
 {
   "cedar_version": "4.9.0",
-  "name": "Clawdia Agent Policies",
-  "description": "Cedar policies for agent tool authorization"
+  "policy_store": {
+    "id": "c1a4d1a0a9e17b0114c1e5",
+    "name": "Clawdia Agent Policies",
+    "description": "Cedar policies for agent tool authorization",
+    "version": "0.1.0"
+  }
 }
