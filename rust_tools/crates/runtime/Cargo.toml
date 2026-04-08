@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 tools = { workspace = true }
+cedarling = { workspace = true }
+anyhow = { workspace = true }
 
 rig-core = { workspace = true }
 rmcp = { workspace = true }

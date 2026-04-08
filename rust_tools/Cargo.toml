@@ -6,6 +6,9 @@ resolver = "3"
 tools = { path = "crates/tools" }
 runtime = { path = "crates/runtime" }
 
+cedarling = { path = "../../jans/jans-cedarling/cedarling", default-features = false }
+anyhow = "1"
+
 rig-core = { version = "0.34", features = ["rmcp"] }
 rmcp = { version = "0.16", features = [
     "client",
