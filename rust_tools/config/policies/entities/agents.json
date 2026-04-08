@@ -1,0 +1,22 @@
+[
+  {
+    "uid": { "type": "AgentPolicy::Agent", "id": "orchestrator" },
+    "attrs": { "agent_type": "orchestrator" },
+    "parents": []
+  },
+  {
+    "uid": { "type": "AgentPolicy::Agent", "id": "researcher" },
+    "attrs": { "agent_type": "researcher" },
+    "parents": []
+  },
+  {
+    "uid": { "type": "AgentPolicy::Agent", "id": "verifier" },
+    "attrs": { "agent_type": "verifier" },
+    "parents": []
+  },
+  {
+    "uid": { "type": "AgentPolicy::Agent", "id": "copywriter" },
+    "attrs": { "agent_type": "copywriter" },
+    "parents": []
+  }
+]

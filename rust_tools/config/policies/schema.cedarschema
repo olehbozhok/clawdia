@@ -1,0 +1,40 @@
+namespace AgentPolicy {
+  entity Agent = {
+    agent_type: String,
+  };
+
+  entity Tool = {
+    tool_type: String,
+    domain: String,
+  };
+
+  action "web_fetch" appliesTo {
+    principal: [Agent],
+    resource: [Tool],
+    context: {
+      requested_domain?: String,
+    }
+  };
+
+  action "campaign_write" appliesTo {
+    principal: [Agent],
+    resource: [Tool],
+    context: {
+      campaign_id?: String,
+    }
+  };
+
+  action "campaign_read" appliesTo {
+    principal: [Agent],
+    resource: [Tool],
+    context: {
+      campaign_id?: String,
+    }
+  };
+
+  action "campaign_manage" appliesTo {
+    principal: [Agent],
+    resource: [Tool],
+    context: {}
+  };
+}

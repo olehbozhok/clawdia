@@ -1,0 +1,17 @@
+{
+  "search": "web_fetch",
+  "fetch_content": "web_fetch",
+  "chrome_get_web_content": "web_fetch",
+  "doc_create": "campaign_manage",
+  "doc_add_statement": "campaign_write",
+  "doc_set_verdict": "campaign_write",
+  "doc_write_content": "campaign_write",
+  "doc_get_verified": "campaign_read",
+  "doc_list": "campaign_read",
+  "doc_list_statements": "campaign_read",
+  "doc_status": "campaign_read",
+  "doc_get": "campaign_read",
+  "doc_assemble": "campaign_manage",
+  "doc_publish_draft": "campaign_manage",
+  "doc_publish_live": "campaign_manage"
+}

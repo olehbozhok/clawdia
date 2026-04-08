@@ -1,0 +1,5 @@
+{
+  "cedar_version": "4.9.0",
+  "name": "Clawdia Agent Policies",
+  "description": "Cedar policies for agent tool authorization"
+}
