@@ -13,20 +13,25 @@ use cedarling::{
     EntityBuilderConfig, EntityData, JsonRule, JwtConfig, LogConfig, LogLevel, LogTypeConfig,
     MemoryLogConfig, PolicyStoreConfig, PolicyStoreSource, RequestUnsigned,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use tools::authz::{AuthorizationDecision, AuthorizationResult};
 
 /// Wraps a Cedarling instance for agent authorization.
 pub struct CedarAuthz {
     cedarling: Cedarling,
+    system_entity_id: String,
 }
 
 impl CedarAuthz {
     /// Load a CedarAuthz from a policy store directory.
     ///
     /// The directory must contain `metadata.json`, `schema.cedarschema`, `policies/`, and `entities/`.
+    /// The System entity ID is read from `entities/system.json`.
     pub async fn from_directory(path: &Path) -> Result<Self> {
+        let system_entity_id = read_system_entity_id(path)
+            .context("reading System entity ID from entities/system.json")?;
+
         let config = BootstrapConfig {
             application_name: "clawdia".to_string(),
             log_config: LogConfig {
@@ -59,7 +64,10 @@ impl CedarAuthz {
             .await
             .context("initializing Cedarling from policy store directory")?;
 
-        Ok(Self { cedarling })
+        Ok(Self {
+            cedarling,
+            system_entity_id,
+        })
     }
 
     /// Authorize a tool call for a given agent.
@@ -92,7 +100,7 @@ impl CedarAuthz {
             resource: EntityData {
                 cedar_mapping: CedarEntityMapping {
                     entity_type: "AgentPolicy::System".to_string(),
-                    id: "clawdia".to_string(),
+                    id: self.system_entity_id.clone(),
                 },
                 attributes: HashMap::new(),
             },
@@ -109,9 +117,7 @@ impl CedarAuthz {
                 } else {
                     AuthorizationResult {
                         decision: AuthorizationDecision::Deny,
-                        reason: Some(format!(
-                            "Cedar policy denied {agent_name} -> {tool_name}"
-                        )),
+                        reason: Some(format!("Cedar policy denied {agent_name} -> {tool_name}")),
                     }
                 }
             }
@@ -121,6 +127,31 @@ impl CedarAuthz {
             },
         }
     }
+}
+
+/// Read the System entity ID from `entities/system.json`.
+///
+/// Expects a JSON array with at least one entity whose `uid.type` is `AgentPolicy::System`.
+fn read_system_entity_id(policy_store_dir: &Path) -> Result<String> {
+    let path = policy_store_dir.join("entities/system.json");
+    let content =
+        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
+    let entities: Vec<Value> =
+        serde_json::from_str(&content).with_context(|| format!("parsing {}", path.display()))?;
+
+    for entity in &entities {
+        let entity_type = entity
+            .pointer("/uid/type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if entity_type == "AgentPolicy::System" {
+            if let Some(id) = entity.pointer("/uid/id").and_then(|v| v.as_str()) {
+                return Ok(id.to_string());
+            }
+        }
+    }
+
+    anyhow::bail!("no AgentPolicy::System entity found in {}", path.display())
 }
 
 /// Build the Cedar context object from the tool name and tool arguments.
@@ -149,7 +180,12 @@ fn build_context(tool_name: &str, args: &Value) -> Value {
 fn needs_campaign_id(tool_name: &str) -> bool {
     !matches!(
         tool_name,
-        "doc_list" | "doc_status" | "doc_create" | "doc_assemble" | "doc_publish_draft" | "doc_publish_live"
+        "doc_list"
+            | "doc_status"
+            | "doc_create"
+            | "doc_assemble"
+            | "doc_publish_draft"
+            | "doc_publish_live"
     )
 }
 
@@ -256,10 +292,7 @@ mod tests {
     #[test]
     fn extract_domain_from_bare_domain() {
         let v = json!({"domain": "oceana.org"});
-        assert_eq!(
-            extract_domain_from_value(&v).as_deref(),
-            Some("oceana.org")
-        );
+        assert_eq!(extract_domain_from_value(&v).as_deref(), Some("oceana.org"));
     }
 
     #[test]
@@ -273,8 +306,8 @@ mod tests {
     #[tokio::test]
     async fn integration_policy_store_authorization() {
         // Path relative to the runtime crate root
-        let policy_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../config/policies");
+        let policy_dir =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/policies");
         let policy_dir = policy_dir
             .canonicalize()
             .expect("policy store directory should exist");
@@ -284,9 +317,7 @@ mod tests {
             .expect("should load policy store");
 
         // researcher allowed to search (action = tool name directly)
-        let result = authz
-            .authorize("researcher", "search", &json!({}))
-            .await;
+        let result = authz.authorize("researcher", "search", &json!({})).await;
         assert_eq!(
             result.decision,
             AuthorizationDecision::Allow,
