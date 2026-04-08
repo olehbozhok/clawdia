@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 use rig::completion::Prompt;
 use rig::providers::deepseek;
 use runtime::agents::{self, AuditLog};
+use runtime::authz_hook::AuthzBackend;
 
 pub async fn chat(
     mcp_config: &Path,
@@ -17,7 +19,19 @@ pub async fn chat(
     let audit_log = AuditLog::new();
     let client = deepseek::Client::new(api_key)?;
 
-    let agent = agents::build_orchestrator(&client, model_name, &config, servers, &audit_log);
+    // For now, use YAML backend. Cedar integration will be wired in a later task.
+    let backend = AuthzBackend::Yaml;
+    let agent_permissions = HashMap::new();
+
+    let agent = agents::build_orchestrator(
+        &client,
+        model_name,
+        &config,
+        servers,
+        &audit_log,
+        backend,
+        &agent_permissions,
+    );
 
     println!("\nClawdia Schiffer — interactive chat (type 'quit' to exit)");
 

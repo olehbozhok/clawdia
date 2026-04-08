@@ -7,8 +7,9 @@ use rig::client::CompletionClient;
 use rig::completion::{CompletionModel, Prompt, PromptError, ToolDefinition};
 use rig::tool::Tool;
 
-use crate::authz_hook::AuthzHook;
+use crate::authz_hook::{AuthzBackend, AuthzHook};
 use crate::mcp::McpServer;
+use crate::policy_prompt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tools::authz::{AuditEntry, AuthorizationDecision, Principal};
@@ -68,6 +69,8 @@ pub fn build_agent<C: CompletionClient + 'static>(
     config: &AgentConfig,
     servers: &[McpServer],
     audit_log: &AuditLog,
+    backend: AuthzBackend,
+    permission_preamble: &str,
 ) -> Agent<C::CompletionModel, AuthzHook> {
     let principal = Principal {
         id: config.name.clone(),
@@ -79,13 +82,20 @@ pub fn build_agent<C: CompletionClient + 'static>(
         principal,
         config.permitted_actions.clone(),
         audit_log.clone(),
+        backend,
     );
 
     let permitted = &config.permitted_actions;
 
+    let full_preamble = if permission_preamble.is_empty() {
+        config.preamble.clone()
+    } else {
+        format!("{}\n{}", config.preamble, permission_preamble)
+    };
+
     let base = client
         .agent(model)
-        .preamble(&config.preamble)
+        .preamble(&full_preamble)
         .name(&config.name)
         .description(&config.description)
         .default_max_turns(DEFAULT_MAX_TURNS)
@@ -120,6 +130,8 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
     config: &Config,
     servers: Vec<McpServer>,
     audit_log: &AuditLog,
+    backend: AuthzBackend,
+    agent_permissions: &HashMap<String, Vec<policy_prompt::PermissionEntry>>,
 ) -> Agent<C::CompletionModel, AuthzHook> {
     let principal = Principal {
         id: config.orchestrator.name.clone(),
@@ -138,14 +150,26 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
         principal,
         config.orchestrator.permitted_actions.clone(),
         audit_log.clone(),
+        backend.clone(),
     )
     .with_sub_agent_tools(sub_agent_tools);
 
     let permitted = &config.orchestrator.permitted_actions;
 
+    let orchestrator_preamble = agent_permissions
+        .get("orchestrator")
+        .map(|entries| policy_prompt::build_permissions_prompt(entries))
+        .unwrap_or_default();
+
+    let full_preamble = if orchestrator_preamble.is_empty() {
+        config.orchestrator.preamble.clone()
+    } else {
+        format!("{}\n{}", config.orchestrator.preamble, orchestrator_preamble)
+    };
+
     let base = client
         .agent(model)
-        .preamble(&config.orchestrator.preamble)
+        .preamble(&full_preamble)
         .name(&config.orchestrator.name)
         .description(&config.orchestrator.description)
         .default_max_turns(DEFAULT_MAX_TURNS)
@@ -171,7 +195,20 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
 
     // All sub-agents are always available to the orchestrator
     for agent_cfg in config.agents.values() {
-        let inner = build_agent(client, model, agent_cfg, &servers, audit_log);
+        let sub_preamble = agent_permissions
+            .get(&agent_cfg.name)
+            .map(|entries| policy_prompt::build_permissions_prompt(entries))
+            .unwrap_or_default();
+
+        let inner = build_agent(
+            client,
+            model,
+            agent_cfg,
+            &servers,
+            audit_log,
+            backend.clone(),
+            &sub_preamble,
+        );
         let sub_agent = VerboseAgent {
             label: agent_cfg.name.clone(),
             inner,
