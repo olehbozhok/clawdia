@@ -1,17 +1,21 @@
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
+use std::sync::Arc;
 
 use rig::completion::Prompt;
 use rig::providers::deepseek;
-use runtime::agents::{self, AuditLog};
+use runtime::agents::{self, AuthzMode, AuditLog};
 use runtime::authz_hook::AuthzBackend;
+use runtime::cedar_authz::CedarAuthz;
+use runtime::policy_prompt;
 
 pub async fn chat(
     mcp_config: &Path,
     agents_config: &Path,
     api_key: &str,
     model_name: &str,
+    policy_store: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let config = agents::load_config(agents_config)?;
     let (servers, running_services) = runtime::mcp::connect_all(mcp_config).await?;
@@ -19,9 +23,35 @@ pub async fn chat(
     let audit_log = AuditLog::new();
     let client = deepseek::Client::new(api_key)?;
 
-    // For now, use YAML backend. Cedar integration will be wired in a later task.
-    let backend = AuthzBackend::Yaml;
-    let agent_permissions = HashMap::new();
+    let needs_cedar = config.orchestrator.authz_mode == AuthzMode::Cedarling
+        || config.agents.values().any(|a| a.authz_mode == AuthzMode::Cedarling);
+
+    let cedar = if needs_cedar && policy_store.exists() {
+        match CedarAuthz::from_directory(policy_store).await {
+            Ok(c) => {
+                println!("Cedar policy engine loaded from {}", policy_store.display());
+                Some(Arc::new(c))
+            }
+            Err(e) => {
+                eprintln!("Warning: failed to load Cedar policies: {e}");
+                eprintln!("Falling back to YAML authorization for all agents.");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    let backend = match &cedar {
+        Some(c) => AuthzBackend::Cedar(c.clone()),
+        None => AuthzBackend::Yaml,
+    };
+
+    let agent_permissions = if policy_store.exists() {
+        policy_prompt::load_permissions_from_policies(policy_store).unwrap_or_default()
+    } else {
+        HashMap::new()
+    };
 
     let agent = agents::build_orchestrator(
         &client,

@@ -51,6 +51,10 @@ struct Cli {
     #[arg(long, env = "DEEPSEEK_MODEL", default_value = "deepseek-chat")]
     model: String,
 
+    /// Path to Cedar policy store directory
+    #[arg(long, env = "CLAWDIA_POLICY_STORE_PATH", default_value = "config/policies")]
+    policy_store: PathBuf,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -85,6 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &cli.agents_config,
                 &cli.api_key,
                 &cli.model,
+                &cli.policy_store,
             )
             .await
         }
