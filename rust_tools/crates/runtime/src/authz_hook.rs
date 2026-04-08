@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
 
@@ -7,26 +9,43 @@ use tools::authz::{
 };
 
 use crate::agents::AuditLog;
+use crate::cedar_authz::CedarAuthz;
+
+/// Which authorization backend to use for tool-call decisions.
+#[derive(Clone)]
+pub enum AuthzBackend {
+    /// Flat list from agents.yaml — fallback mode
+    Yaml,
+    /// Cedar policy engine — default
+    Cedar(Arc<CedarAuthz>),
+}
 
 /// A PromptHook that enforces deny-by-default tool authorization.
 ///
-/// Only tools listed in `permitted_actions` are allowed. Everything else is denied.
-/// When Cedarling is integrated, `authorize` will delegate to `cedarling.authorize(req)`.
+/// Dispatches to either the YAML flat-list or Cedar policy engine
+/// depending on `backend`.
 #[derive(Clone)]
 pub struct AuthzHook {
     principal: Principal,
     permitted_actions: Vec<String>,
     sub_agent_tools: Vec<String>,
     audit_log: AuditLog,
+    backend: AuthzBackend,
 }
 
 impl AuthzHook {
-    pub fn new(principal: Principal, permitted_actions: Vec<String>, audit_log: AuditLog) -> Self {
+    pub fn new(
+        principal: Principal,
+        permitted_actions: Vec<String>,
+        audit_log: AuditLog,
+        backend: AuthzBackend,
+    ) -> Self {
         Self {
             principal,
             permitted_actions,
             sub_agent_tools: Vec::new(),
             audit_log,
+            backend,
         }
     }
 
@@ -57,6 +76,13 @@ impl AuthzHook {
             }
         };
 
+        self.record_audit(tool_name, args, &result);
+
+        result
+    }
+
+    /// Record an authorization decision in the audit log.
+    fn record_audit(&self, tool_name: &str, args: &str, result: &AuthorizationResult) {
         let request = AuthorizationRequest {
             principal: self.principal.clone(),
             action: tool_name.to_string(),
@@ -68,9 +94,7 @@ impl AuthzHook {
         };
 
         self.audit_log
-            .append(AuditEntry::from_request(&request, &result));
-
-        result
+            .append(AuditEntry::from_request(&request, result));
     }
 }
 
@@ -82,7 +106,28 @@ impl<M: CompletionModel> PromptHook<M> for AuthzHook {
         _internal_call_id: &str,
         args: &str,
     ) -> ToolCallHookAction {
-        let result = self.authorize(tool_name, args);
+        // Sub-agent tools are always allowed (they enforce their own permissions)
+        if self.sub_agent_tools.iter().any(|t| t == tool_name) {
+            let result = AuthorizationResult {
+                decision: AuthorizationDecision::Allow,
+                reason: None,
+            };
+            self.record_audit(tool_name, args, &result);
+            return ToolCallHookAction::cont();
+        }
+
+        let result = match &self.backend {
+            AuthzBackend::Yaml => self.authorize(tool_name, args),
+            AuthzBackend::Cedar(cedar) => {
+                let parsed_args: serde_json::Value =
+                    serde_json::from_str(args).unwrap_or(serde_json::Value::Null);
+                let result = cedar
+                    .authorize(&self.principal.id, tool_name, &parsed_args)
+                    .await;
+                self.record_audit(tool_name, args, &result);
+                result
+            }
+        };
 
         match result.decision {
             AuthorizationDecision::Allow => ToolCallHookAction::cont(),
@@ -153,6 +198,7 @@ mod tests {
             principal,
             permitted.iter().map(|s| s.to_string()).collect(),
             AuditLog::new(),
+            AuthzBackend::Yaml,
         )
     }
 
@@ -275,7 +321,7 @@ mod tests {
             principal_type: "orchestrator".into(),
             delegation_record_id: None,
         };
-        let hook = AuthzHook::new(principal, vec!["read_file".into()], audit_log.clone());
+        let hook = AuthzHook::new(principal, vec!["read_file".into()], audit_log.clone(), AuthzBackend::Yaml);
 
         hook.authorize("read_file", "{}");
         hook.authorize("write_file", "{}");
@@ -296,7 +342,7 @@ mod tests {
             principal_type: "researcher".into(),
             delegation_record_id: None,
         };
-        let hook = AuthzHook::new(principal, vec![], audit_log.clone());
+        let hook = AuthzHook::new(principal, vec![], audit_log.clone(), AuthzBackend::Yaml);
 
         hook.authorize("some_tool", "{}");
 
