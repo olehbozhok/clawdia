@@ -1,5 +1,9 @@
 # Project Instructions
 
+## Project Overview
+
+Clawdia Schiffer is a policy-governed AI activist agent that researches, verifies, and publishes anti-bottom-trawling campaign content. It uses a multi-agent orchestration pattern (Orchestrator, Researcher, Verifier, Copywriter) communicating through a shared campaign document managed by the `campaign-doc` MCP server. Built with Rust (rig framework) for the agent runtime and Python (FastMCP) for the MCP server. Authorization is currently deny-by-default YAML config, with planned migration to Cedarling Cedar policies.
+
 ## Security
 
 - NEVER read, display, or log the contents of `.env` files or any file containing secrets (API keys, passwords, tokens).
@@ -37,3 +41,12 @@
 
 - Always use `uv run pyright` to validate Python code instead of running the app, when possible.
 - Fix all pyright errors before considering the task complete.
+
+## Memory Instructions
+
+- On startup: call `mempalace_status` to load the palace
+- Before answering questions about past work: call `mempalace_search`
+- When asked to remember something: call `mempalace_add_drawer` and `mempalace_kg_add`
+- At end of meaningful sessions: write diary with `mempalace_diary_write`
+- **Always use English** for all mempalace interactions (searches, drawer names, descriptions, diary entries, KG triples). Never use other languages.
+
