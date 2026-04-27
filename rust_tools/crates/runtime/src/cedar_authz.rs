@@ -10,10 +10,10 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use cedarling::{
     AuthorizationConfig, BootstrapConfig, CedarEntityMapping, Cedarling, DataStoreConfig,
-    EntityBuilderConfig, EntityData, JsonRule, JwtConfig, LogConfig, LogLevel, LogTypeConfig,
-    MemoryLogConfig, PolicyStoreConfig, PolicyStoreSource, RequestUnsigned,
+    EntityData, JwtConfig, LogConfig, LogLevel, LogTypeConfig, MemoryLogConfig,
+    PolicyStoreConfig, PolicyStoreSource, RequestUnsigned,
 };
-use serde_json::{Value, json};
+use serde_json::Value;
 
 use tools::authz::{AuthorizationDecision, AuthorizationResult};
 
@@ -46,14 +46,7 @@ impl CedarAuthz {
                 source: PolicyStoreSource::Directory(path.to_path_buf()),
             },
             jwt_config: JwtConfig::new_without_validation(),
-            authorization_config: AuthorizationConfig {
-                principal_bool_operator: JsonRule::new(
-                    json!({"===": [{"var": "AgentPolicy::Agent"}, "ALLOW"]}),
-                )
-                .context("creating principal_bool_operator JsonRule")?,
-                ..AuthorizationConfig::default()
-            },
-            entity_builder_config: EntityBuilderConfig::default(),
+            authorization_config: AuthorizationConfig::default(),
             lock_config: None,
             max_default_entities: None,
             max_base64_size: None,
@@ -86,7 +79,7 @@ impl CedarAuthz {
         let context = build_context(tool_name, args);
 
         let request = RequestUnsigned {
-            principals: vec![EntityData {
+            principal: Some(EntityData {
                 cedar_mapping: CedarEntityMapping {
                     entity_type: "AgentPolicy::Agent".to_string(),
                     id: agent_name.to_string(),
@@ -95,7 +88,7 @@ impl CedarAuthz {
                     "agent_type".to_string(),
                     Value::String(agent_name.to_string()),
                 )]),
-            }],
+            }),
             action: cedar_action,
             resource: EntityData {
                 cedar_mapping: CedarEntityMapping {
@@ -144,10 +137,10 @@ fn read_system_entity_id(policy_store_dir: &Path) -> Result<String> {
             .pointer("/uid/type")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        if entity_type == "AgentPolicy::System" {
-            if let Some(id) = entity.pointer("/uid/id").and_then(|v| v.as_str()) {
-                return Ok(id.to_string());
-            }
+        if entity_type == "AgentPolicy::System"
+            && let Some(id) = entity.pointer("/uid/id").and_then(|v| v.as_str())
+        {
+            return Ok(id.to_string());
         }
     }
 
@@ -167,10 +160,10 @@ fn build_context(tool_name: &str, args: &Value) -> Value {
         if let Some(domain) = extract_domain_from_value(args) {
             ctx.insert("requested_domain".to_string(), Value::String(domain));
         }
-    } else if tool_name.starts_with("doc_") && needs_campaign_id(tool_name) {
-        if let Some(id) = args.get("campaign_id").and_then(|v| v.as_str()) {
-            ctx.insert("campaign_id".to_string(), Value::String(id.to_string()));
-        }
+    } else if tool_name.starts_with("doc_") && needs_campaign_id(tool_name)
+        && let Some(id) = args.get("campaign_id").and_then(|v| v.as_str())
+    {
+        ctx.insert("campaign_id".to_string(), Value::String(id.to_string()));
     }
 
     Value::Object(ctx)
@@ -211,6 +204,7 @@ fn extract_domain_from_value(v: &Value) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     // ── build_context tests ──
 
