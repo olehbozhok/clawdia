@@ -10,8 +10,8 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use cedarling::{
     AuthorizationConfig, BootstrapConfig, CedarEntityMapping, Cedarling, DataStoreConfig,
-    EntityData, JwtConfig, LogConfig, LogLevel, LogTypeConfig, MemoryLogConfig,
-    PolicyStoreConfig, PolicyStoreSource, RequestUnsigned,
+    EntityData, JwtConfig, LogConfig, LogLevel, LogTypeConfig, PolicyStoreConfig,
+    PolicyStoreSource, RequestUnsigned, log_config::StdOutLoggerMode,
 };
 use serde_json::Value;
 
@@ -29,21 +29,23 @@ impl CedarAuthz {
     /// The directory must contain `metadata.json`, `schema.cedarschema`, `policies/`, and `entities/`.
     /// The System entity ID is read from `entities/system.json`.
     pub async fn from_directory(path: &Path) -> Result<Self> {
-        let system_entity_id = read_system_entity_id(path)
+        // Cedarling's PhysicalVfs is rooted at "/" and ignores CWD, so relative
+        // paths resolve against filesystem root. Canonicalize to absolute first.
+        let abs_path = path
+            .canonicalize()
+            .with_context(|| format!("resolving policy store path: {}", path.display()))?;
+
+        let system_entity_id = read_system_entity_id(&abs_path)
             .context("reading System entity ID from entities/system.json")?;
 
         let config = BootstrapConfig {
             application_name: "clawdia".to_string(),
             log_config: LogConfig {
-                log_type: LogTypeConfig::Memory(MemoryLogConfig {
-                    log_ttl: 60,
-                    max_items: None,
-                    max_item_size: None,
-                }),
+                log_type: LogTypeConfig::StdOut(StdOutLoggerMode::Immediate),
                 log_level: LogLevel::INFO,
             },
             policy_store_config: PolicyStoreConfig {
-                source: PolicyStoreSource::Directory(path.to_path_buf()),
+                source: PolicyStoreSource::Directory(abs_path),
             },
             jwt_config: JwtConfig::new_without_validation(),
             authorization_config: AuthorizationConfig::default(),
@@ -160,7 +162,8 @@ fn build_context(tool_name: &str, args: &Value) -> Value {
         if let Some(domain) = extract_domain_from_value(args) {
             ctx.insert("requested_domain".to_string(), Value::String(domain));
         }
-    } else if tool_name.starts_with("doc_") && needs_campaign_id(tool_name)
+    } else if tool_name.starts_with("doc_")
+        && needs_campaign_id(tool_name)
         && let Some(id) = args.get("campaign_id").and_then(|v| v.as_str())
     {
         ctx.insert("campaign_id".to_string(), Value::String(id.to_string()));
