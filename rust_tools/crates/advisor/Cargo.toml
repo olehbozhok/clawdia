@@ -1,0 +1,26 @@
+[package]
+name = "advisor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+runtime = { workspace = true }
+tools = { workspace = true }
+
+anyhow = { workspace = true }
+thiserror = "2"
+
+rig-core = { workspace = true }
+rmcp = { workspace = true }
+
+cedar-policy = { workspace = true }
+
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+tempfile = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
