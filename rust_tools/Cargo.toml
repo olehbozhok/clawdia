@@ -6,7 +6,7 @@ resolver = "3"
 tools = { path = "crates/tools" }
 runtime = { path = "crates/runtime" }
 
-cedarling = { git = "https://github.com/JanssenProject/jans", rev = "47f2d809dbb", default-features = false }
+cedarling = { git = "https://github.com/JanssenProject/jans", rev = "89b2b8af6ef", default-features = false }
 anyhow = "1"
 
 rig-core = { version = "0.34", features = ["rmcp"] }
