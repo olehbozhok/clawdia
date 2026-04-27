@@ -130,6 +130,58 @@ pub async fn tools(mcp_config: &Path, json: bool) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
+pub async fn advisor_generate(
+    mcp_config: &Path,
+    agents_config: &Path,
+    output: &Path,
+    api_key: &str,
+    model: &str,
+    policy_store_id: Option<&str>,
+    system_entity_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let agents_cfg = runtime::agents::load_config(agents_config)?;
+
+    let mut agents = Vec::new();
+    for (name, agent) in &agents_cfg.agents {
+        agents.push(advisor::AgentSpec {
+            name: name.clone(),
+            description: agent.description.clone(),
+            permitted_tools: agent.permitted_actions.clone(),
+        });
+    }
+
+    let tools = advisor::discovery::discover(mcp_config).await?;
+    println!("Discovered {} tools across MCP servers.", tools.len());
+
+    let client = advisor::RigClient::new(api_key, model)?;
+
+    let policy_store_id = match policy_store_id {
+        Some(id) => id.to_string(),
+        None => random_hex_id(),
+    };
+
+    let input = advisor::AdvisorInput {
+        agents,
+        tools,
+        policy_store_id,
+        system_entity_id: system_entity_id.to_string(),
+        domain_hint: None,
+    };
+
+    let out = advisor::run(&client, input, output.to_path_buf()).await?;
+    println!("Wrote policy store to {}", out.output_dir.display());
+    Ok(())
+}
+
+fn random_hex_id() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    format!("{:024x}", nanos)
+}
+
 pub fn agents(agents_config: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let config = agents::load_config(agents_config)?;
 

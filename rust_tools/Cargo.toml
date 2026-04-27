@@ -5,6 +5,7 @@ resolver = "3"
 [workspace.dependencies]
 tools = { path = "crates/tools" }
 runtime = { path = "crates/runtime" }
+advisor = { path = "crates/advisor" }
 
 cedarling = { git = "https://github.com/JanssenProject/jans", rev = "89b2b8af6ef", default-features = false }
 anyhow = "1"

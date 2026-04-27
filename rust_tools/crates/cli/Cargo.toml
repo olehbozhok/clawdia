@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 runtime = { workspace = true }
+advisor = { workspace = true }
 
 rig-core = { workspace = true }
 rmcp = { workspace = true }

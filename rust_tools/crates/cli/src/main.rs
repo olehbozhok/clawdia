@@ -75,6 +75,36 @@ enum Command {
     },
     /// List configured agents and their permitted actions
     Agents,
+    /// Auto-generate a Cedarling policy store from MCP tools and agent roles.
+    AdvisorGenerate {
+        /// MCP servers config file
+        #[arg(long, default_value = "config/mcp.yaml")]
+        mcp_config: std::path::PathBuf,
+
+        /// Agents config file (used to read agent names + permitted tools)
+        #[arg(long, default_value = "config/agents.yaml")]
+        agents_config: std::path::PathBuf,
+
+        /// Output directory for the generated policy store
+        #[arg(long, default_value = "config/policies")]
+        output: std::path::PathBuf,
+
+        /// DeepSeek API key
+        #[arg(long, env = "DEEPSEEK_API_KEY")]
+        api_key: String,
+
+        /// LLM model name
+        #[arg(long, default_value = "deepseek-chat")]
+        model: String,
+
+        /// Cedar policy store ID (hex 8-64 chars). If omitted, a random hex ID is generated.
+        #[arg(long)]
+        policy_store_id: Option<String>,
+
+        /// System entity ID
+        #[arg(long, default_value = "clawdia")]
+        system_entity_id: String,
+    },
 }
 
 #[tokio::main]
@@ -99,5 +129,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::Tools { json } => commands::tools(&cli.mcp_config, json).await,
         Command::Agents => commands::agents(&cli.agents_config),
+        Command::AdvisorGenerate {
+            mcp_config,
+            agents_config,
+            output,
+            api_key,
+            model,
+            policy_store_id,
+            system_entity_id,
+        } => {
+            commands::advisor_generate(
+                &mcp_config,
+                &agents_config,
+                &output,
+                &api_key,
+                &model,
+                policy_store_id.as_deref(),
+                &system_entity_id,
+            )
+            .await
+        }
     }
 }
