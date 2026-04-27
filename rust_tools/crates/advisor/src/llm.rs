@@ -46,6 +46,37 @@ impl LlmClient for FakeLlmClient {
     }
 }
 
+use rig::client::CompletionClient;
+use rig::completion::Prompt;
+
+pub struct RigClient {
+    agent: rig::providers::deepseek::Client,
+    model: String,
+}
+
+impl RigClient {
+    pub fn new(api_key: &str, model: impl Into<String>) -> Result<Self> {
+        let agent = rig::providers::deepseek::Client::new(api_key)?;
+        Ok(Self {
+            agent,
+            model: model.into(),
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl LlmClient for RigClient {
+    async fn complete(&self, system: &str, user: &str) -> Result<String> {
+        let agent = self
+            .agent
+            .agent(&self.model)
+            .preamble(system)
+            .build();
+        let response = agent.prompt(user).await?;
+        Ok(response)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
