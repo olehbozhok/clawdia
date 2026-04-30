@@ -46,4 +46,5 @@ Thumbs.db
 .claude
 .kiro/specs/clawdia-schiffer-agent/implementation-plan.md
 /.tmp
-/docs/superpowers.worktrees/
+/docs/superpowers
+.worktrees/
