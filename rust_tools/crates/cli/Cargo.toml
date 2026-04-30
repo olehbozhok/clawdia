@@ -7,10 +7,6 @@ edition = "2024"
 name = "clawdia"
 path = "src/main.rs"
 
-[lib]
-name = "cli"
-path = "src/lib.rs"
-
 [dependencies]
 anyhow = { workspace = true }
 tracing = { workspace = true }

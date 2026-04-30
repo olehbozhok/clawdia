@@ -16,7 +16,7 @@ pub async fn chat(
     api_key: &str,
     model_name: &str,
     policy_store: &Path,
-    authz_backend: crate::AuthzBackendChoice,
+    authz_backend: crate::cli_args::AuthzBackendChoice,
 ) -> anyhow::Result<()> {
     let config = agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
     let (servers, running_services) =
@@ -26,7 +26,7 @@ pub async fn chat(
     let client = deepseek::Client::new(api_key).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let cedar = match authz_backend {
-        crate::AuthzBackendChoice::Cedarling => {
+        crate::cli_args::AuthzBackendChoice::Cedarling => {
             let cedar = CedarAuthz::from_directory(policy_store)
                 .await
                 .map_err(|e| anyhow::anyhow!(
@@ -41,7 +41,7 @@ pub async fn chat(
             );
             Some(Arc::new(cedar))
         }
-        crate::AuthzBackendChoice::Yaml => {
+        crate::cli_args::AuthzBackendChoice::Yaml => {
             tracing::warn!(
                 "YAML authorization backend selected — Cedar policies are NOT \
                  enforced. This mode is for development/debugging only."

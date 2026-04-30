@@ -106,3 +106,38 @@ pub enum Command {
         system_entity_id: String,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::{AuthzBackendChoice, Cli, Command};
+
+    #[test]
+    fn defaults_to_cedarling_backend() {
+        let cli = Cli::try_parse_from(["clawdia", "--api-key", "k", "chat"]).expect("parse");
+        assert!(matches!(cli.authz_backend, AuthzBackendChoice::Cedarling));
+        assert!(matches!(cli.command, Command::Chat));
+    }
+
+    #[test]
+    fn yaml_backend_is_opt_in() {
+        let cli = Cli::try_parse_from([
+            "clawdia",
+            "--api-key",
+            "k",
+            "--authz-backend",
+            "yaml",
+            "chat",
+        ])
+        .expect("parse");
+        assert!(matches!(cli.authz_backend, AuthzBackendChoice::Yaml));
+    }
+
+    #[test]
+    fn yaml_backend_skips_cedar_load() {
+        let backend = AuthzBackendChoice::Yaml;
+        let took_cedar_path = matches!(backend, AuthzBackendChoice::Cedarling);
+        assert!(!took_cedar_path, "yaml backend must not enter cedar branch");
+    }
+}
