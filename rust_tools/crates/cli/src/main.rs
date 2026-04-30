@@ -1,98 +1,8 @@
-mod commands;
-
-use std::path::PathBuf;
-
-use clap::{Parser, Subcommand, ValueEnum};
-
-#[derive(Debug, Clone, ValueEnum)]
-enum LogLevel {
-    Trace,
-    Debug,
-    Info,
-    Warn,
-    Error,
-    Off,
-}
-
-impl From<LogLevel> for tracing_subscriber::filter::LevelFilter {
-    fn from(level: LogLevel) -> Self {
-        match level {
-            LogLevel::Trace => Self::TRACE,
-            LogLevel::Debug => Self::DEBUG,
-            LogLevel::Info => Self::INFO,
-            LogLevel::Warn => Self::WARN,
-            LogLevel::Error => Self::ERROR,
-            LogLevel::Off => Self::OFF,
-        }
-    }
-}
-
-#[derive(Parser)]
-#[command(name = "clawdia")]
-#[command(about = "Clawdia Schiffer — policy-governed AI agent CLI")]
-struct Cli {
-    /// Log level
-    #[arg(long, env = "LOG_LEVEL", default_value = "info")]
-    log_level: LogLevel,
-
-    /// Path to MCP servers config
-    #[arg(long, env = "MCP_CONFIG", default_value = "config/mcp_servers.yaml")]
-    mcp_config: PathBuf,
-
-    /// Path to agents config
-    #[arg(long, env = "AGENTS_CONFIG", default_value = "config/agents.yaml")]
-    agents_config: PathBuf,
-
-    /// DeepSeek API key
-    #[arg(long, env = "DEEPSEEK_API_KEY", hide_env_values = true)]
-    api_key: String,
-
-    /// DeepSeek model name
-    #[arg(long, env = "DEEPSEEK_MODEL", default_value = "deepseek-chat")]
-    model: String,
-
-    /// Path to Cedar policy store directory
-    #[arg(
-        long,
-        env = "CLAWDIA_POLICY_STORE_PATH",
-        default_value = "config/policies"
-    )]
-    policy_store: PathBuf,
-
-    #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Subcommand)]
-enum Command {
-    /// Start interactive chat with the orchestrator agent
-    Chat,
-    /// List all available tools from connected MCP servers
-    Tools {
-        /// Output full tool definitions as JSON (includes input schemas)
-        #[arg(long)]
-        json: bool,
-    },
-    /// List configured agents and their permitted actions
-    Agents,
-    /// Auto-generate a Cedarling policy store from MCP tools and agent roles.
-    AdvisorGenerate {
-        /// Output directory for the generated policy store
-        #[arg(long, default_value = "config/policies")]
-        output: PathBuf,
-
-        /// Cedar policy store ID (hex 8-64 chars). If omitted, a random hex ID is generated.
-        #[arg(long)]
-        policy_store_id: Option<String>,
-
-        /// System entity ID
-        #[arg(long, default_value = "clawdia")]
-        system_entity_id: String,
-    },
-}
+use clap::Parser;
+use cli::{commands, Cli, Command};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     let cli = Cli::parse();
@@ -108,6 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &cli.api_key,
                 &cli.model,
                 &cli.policy_store,
+                cli.authz_backend,
             )
             .await
         }

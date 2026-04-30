@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use rig::completion::Prompt;
 use rig::providers::deepseek;
-use runtime::agents::{self, AuditLog, AuthzMode};
+use runtime::agents::{self, AuditLog};
 use runtime::authz_hook::AuthzBackend;
 use runtime::cedar_authz::CedarAuthz;
 use runtime::policy_prompt;
@@ -16,33 +16,38 @@ pub async fn chat(
     api_key: &str,
     model_name: &str,
     policy_store: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let config = agents::load_config(agents_config)?;
-    let (servers, running_services) = runtime::mcp::connect_all(mcp_config).await?;
+    authz_backend: crate::AuthzBackendChoice,
+) -> anyhow::Result<()> {
+    let config = agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let (servers, running_services) =
+        runtime::mcp::connect_all(mcp_config).await.map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let audit_log = AuditLog::new();
-    let client = deepseek::Client::new(api_key)?;
+    let client = deepseek::Client::new(api_key).map_err(|e| anyhow::anyhow!("{e}"))?;
 
-    let needs_cedar = config.orchestrator.authz_mode == AuthzMode::Cedarling
-        || config
-            .agents
-            .values()
-            .any(|a| a.authz_mode == AuthzMode::Cedarling);
-
-    let cedar = if needs_cedar && policy_store.exists() {
-        match CedarAuthz::from_directory(policy_store).await {
-            Ok(c) => {
-                println!("Cedar policy engine loaded from {}", policy_store.display());
-                Some(Arc::new(c))
-            }
-            Err(e) => {
-                eprintln!("Warning: failed to load Cedar policies: {e}");
-                eprintln!("Falling back to YAML authorization for all agents.");
-                None
-            }
+    let cedar = match authz_backend {
+        crate::AuthzBackendChoice::Cedarling => {
+            let cedar = CedarAuthz::from_directory(policy_store)
+                .await
+                .map_err(|e| anyhow::anyhow!(
+                    "Cedarling backend selected but failed to load policy store \
+                     at {}: {e}. Re-run with --authz-backend yaml only for \
+                     development/debugging.",
+                    policy_store.display(),
+                ))?;
+            tracing::info!(
+                "Cedar policy engine loaded from {}",
+                policy_store.display()
+            );
+            Some(Arc::new(cedar))
         }
-    } else {
-        None
+        crate::AuthzBackendChoice::Yaml => {
+            tracing::warn!(
+                "YAML authorization backend selected — Cedar policies are NOT \
+                 enforced. This mode is for development/debugging only."
+            );
+            None
+        }
     };
 
     let backend = match &cedar {
@@ -88,13 +93,14 @@ pub async fn chat(
     }
 
     for svc in running_services {
-        svc.cancel().await?;
+        svc.cancel().await.map_err(|e| anyhow::anyhow!("{e}"))?;
     }
     Ok(())
 }
 
-pub async fn tools(mcp_config: &Path, json: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let (servers, running_services) = runtime::mcp::connect_all(mcp_config).await?;
+pub async fn tools(mcp_config: &Path, json: bool) -> anyhow::Result<()> {
+    let (servers, running_services) =
+        runtime::mcp::connect_all(mcp_config).await.map_err(|e| anyhow::anyhow!("{e}"))?;
 
     if json {
         let mut output = serde_json::Map::new();
@@ -125,7 +131,7 @@ pub async fn tools(mcp_config: &Path, json: bool) -> Result<(), Box<dyn std::err
     }
 
     for svc in running_services {
-        svc.cancel().await?;
+        svc.cancel().await.map_err(|e| anyhow::anyhow!("{e}"))?;
     }
     Ok(())
 }
@@ -138,8 +144,8 @@ pub async fn advisor_generate(
     model: &str,
     policy_store_id: Option<&str>,
     system_entity_id: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let agents_cfg = runtime::agents::load_config(agents_config)?;
+) -> anyhow::Result<()> {
+    let agents_cfg = runtime::agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let mut agents = Vec::new();
     for (name, agent) in &agents_cfg.agents {
@@ -150,10 +156,10 @@ pub async fn advisor_generate(
         });
     }
 
-    let tools = advisor::discovery::discover(mcp_config).await?;
+    let tools = advisor::discovery::discover(mcp_config).await.map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("Discovered {} tools across MCP servers.", tools.len());
 
-    let client = advisor::RigClient::new(api_key, model)?;
+    let client = advisor::RigClient::new(api_key, model).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let policy_store_id = match policy_store_id {
         Some(id) => id.to_string(),
@@ -168,7 +174,7 @@ pub async fn advisor_generate(
         domain_hint: None,
     };
 
-    let out = advisor::run(&client, input, output.to_path_buf()).await?;
+    let out = advisor::run(&client, input, output.to_path_buf()).await.map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("Wrote policy store to {}", out.output_dir.display());
     Ok(())
 }
@@ -182,8 +188,8 @@ fn random_hex_id() -> String {
     format!("{:024x}", nanos)
 }
 
-pub fn agents(agents_config: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let config = agents::load_config(agents_config)?;
+pub fn agents(agents_config: &Path) -> anyhow::Result<()> {
+    let config = agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     println!("Orchestrator:");
     if config.orchestrator.permitted_actions.is_empty() {
