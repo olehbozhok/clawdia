@@ -4,7 +4,7 @@
 
 use crate::approvals::types::TicketId;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SubAgentOutcome {
     Done { summary: String, result: String },
     Failed {
@@ -16,7 +16,7 @@ pub enum SubAgentOutcome {
     Cancelled,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FailureKind {
     MissingTool { name: String },
     InsufficientPermission { action: String },
@@ -26,7 +26,7 @@ pub enum FailureKind {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AbandonReason {
     Ttl,
     ParentCancel,

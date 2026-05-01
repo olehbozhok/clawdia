@@ -112,13 +112,13 @@ pub enum Wait {
 }
 
 /// Snapshot of a wait suitable for putting into `SystemMsg::StopWithPendingWaits`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct WaitRef {
     pub kind: WaitRefKind,
     pub label: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum WaitRefKind {
     Approval,
     SubAgent,
