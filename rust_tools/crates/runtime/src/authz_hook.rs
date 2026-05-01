@@ -59,7 +59,8 @@ impl AuthzHook {
     pub fn authorize(&self, tool_name: &str, args: &str) -> AuthorizationResult {
         // deny-by-default: only explicitly permitted tools and sub-agent tools are allowed
         let is_permitted = self.permitted_actions.iter().any(|t| t == tool_name)
-            || self.sub_agent_tools.iter().any(|t| t == tool_name);
+            || self.sub_agent_tools.iter().any(|t| t == tool_name)
+            || crate::sub_agent::BUILTIN_AGENT_TOOLS.contains(&tool_name);
 
         let result = if is_permitted {
             AuthorizationResult {
@@ -106,8 +107,10 @@ impl<M: CompletionModel> PromptHook<M> for AuthzHook {
         _internal_call_id: &str,
         args: &str,
     ) -> ToolCallHookAction {
-        // Sub-agent tools are always allowed (they enforce their own permissions)
-        if self.sub_agent_tools.iter().any(|t| t == tool_name) {
+        // Sub-agent tools and built-in agent runtime tools are always allowed.
+        if self.sub_agent_tools.iter().any(|t| t == tool_name)
+            || crate::sub_agent::BUILTIN_AGENT_TOOLS.contains(&tool_name)
+        {
             let result = AuthorizationResult {
                 decision: AuthorizationDecision::Allow,
                 reason: None,

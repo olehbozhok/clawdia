@@ -1,6 +1,9 @@
 # Agent Configuration
 # deny-by-default: only explicitly listed actions (tool names) are allowed.
 # Sub-agents are always available to the orchestrator (no permission needed).
+# Built-in agent runtime tools are always available to every agent and must NOT
+# be listed in permitted_actions: agent_spawn, agent_get, agent_cancel,
+# session_done, session_fail.
 #
 # BROWSER TAB RULE (applies to all agents with chrome_* tools):
 # When using chrome_get_web_content, pass the URL directly — do not open new tabs
@@ -44,10 +47,6 @@ orchestrator:
     - doc_list_statements
     - doc_status
     - doc_get
-    - agent_spawn
-    - agent_get
-    - agent_cancel
-    - session_done
 
 agents:
   researcher:
@@ -86,8 +85,6 @@ agents:
       - doc_list_statements
       - doc_status
       - doc_get
-      - session_fail
-      - session_done
 
   verifier:
     name: verifier
@@ -112,8 +109,6 @@ agents:
       - doc_list_statements
       - doc_status
       - doc_get
-      - session_fail
-      - session_done
 
   copywriter:
     name: copywriter
@@ -133,8 +128,6 @@ agents:
       - doc_get_verified
       - doc_list
       - doc_status
-      - session_fail
-      - session_done
 
   # media_creator:
   #   name: media_creator
