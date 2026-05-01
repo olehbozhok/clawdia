@@ -2,6 +2,7 @@ pub mod agents;
 pub mod approvals;
 pub mod authz_hook;
 pub mod cedar_authz;
+pub mod inbox;
 pub mod mcp;
 pub mod policy_prompt;
 pub mod sessions;
