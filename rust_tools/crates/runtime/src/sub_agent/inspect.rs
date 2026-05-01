@@ -13,6 +13,10 @@ pub enum InspectError {
     Store(#[from] crate::sessions::SessionError),
 }
 
+/// Read the current state of a sub-agent. Non-blocking and lifecycle-safe:
+/// returns `Running`/`Sleeping{waits}` for live sessions and
+/// `Done`/`Failed`/`Abandoned`/`Cancelled` once an outcome exists. Errors only
+/// when the session id is unknown to the store.
 pub async fn agent_get(ctx: &SpawnCtx, child: &SessionId) -> Result<AgentState, InspectError> {
     if !ctx.sessions.exists(child).await? {
         return Err(InspectError::Unknown(child.clone()));

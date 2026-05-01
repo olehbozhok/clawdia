@@ -10,6 +10,11 @@ pub enum CancelError {
     Unknown(SessionId),
 }
 
+/// Request cancellation of a sub-agent by flipping its registry cancel token.
+/// Cooperative: the runner must observe the token between turns. Final
+/// transition (status, parent notification) happens in `finalize_child` once
+/// the runner exits. Returns `Unknown` if the child is not in the registry
+/// (never spawned, or already finalized and reaped).
 pub async fn agent_cancel(ctx: &SpawnCtx, child: &SessionId) -> Result<(), CancelError> {
     if !ctx.registry.cancel(child) {
         return Err(CancelError::Unknown(child.clone()));

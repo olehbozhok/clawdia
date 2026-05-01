@@ -12,6 +12,10 @@ pub enum FailError {
     Unknown(SessionId),
 }
 
+/// Mark the calling session as `Failed` with structured kind/message/hint.
+/// Records the outcome in the registry and signals cancel so the runner
+/// exits its loop on the next checkpoint; `finalize_child` then propagates
+/// the Failed payload up to the parent.
 pub async fn session_fail(
     ctx: &SpawnCtx,
     child: &SessionId,

@@ -39,6 +39,10 @@ pub enum SpawnError {
     Store(#[from] crate::sessions::SessionError),
 }
 
+/// Non-blocking sub-agent spawn. Creates a child session, registers a
+/// `Wait::SubAgent` on the parent, and detaches the runner on a tokio task.
+/// Returns the child id immediately; the parent learns of completion via a
+/// `SubAgentFinished` system message pushed to its inbox.
 pub async fn spawn(
     ctx: &SpawnCtx,
     parent: SessionId,
@@ -80,6 +84,10 @@ pub async fn spawn(
     Ok(child)
 }
 
+/// Terminal-side cleanup for a child session. Idempotent in spirit (callers
+/// should ensure single invocation): records outcome, drains residual child
+/// waits, transitions session status, closes inbox, removes the parent's
+/// `Wait::SubAgent` entry, and pushes `SubAgentFinished` to the parent inbox.
 pub(crate) async fn finalize_child(
     ctx: &SpawnCtx,
     parent: SessionId,
