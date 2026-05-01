@@ -5,7 +5,7 @@
 //! from LLM arguments — so an agent cannot impersonate another session.
 
 use crate::inbox::SystemMsg;
-use crate::sessions::{SessionId, SessionStatus, Wait};
+use crate::sessions::{SessionId, SessionStatus};
 use crate::sub_agent::cancel::agent_cancel;
 use crate::sub_agent::fail::session_fail;
 use crate::sub_agent::inspect::agent_get;
@@ -310,14 +310,10 @@ impl Tool for SessionDoneTool {
     }
 }
 
-// suppress unused-import warnings when not under cfg(test) building tools.
-#[allow(dead_code)]
-fn _unused_wait_marker(_w: Wait) {}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sessions::Principal;
+    use crate::sessions::{Principal, Wait};
     use crate::sub_agent::spawn::test_support::{DoneRunner, NeverFinishRunner, ctx_with};
 
     fn arc_ctx(runner: Arc<dyn crate::sub_agent::spawn::ChildRunner>) -> Arc<SpawnCtx> {

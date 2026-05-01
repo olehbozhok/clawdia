@@ -134,7 +134,6 @@ pub(crate) async fn finalize_child(
 }
 
 #[cfg(test)]
-#[allow(dead_code)]
 pub(crate) mod test_support {
     use super::*;
     use crate::persistence::memory::{InMemoryInbox, InMemorySessionStore};
