@@ -16,7 +16,7 @@ pub enum SubAgentOutcome {
     Cancelled,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub enum FailureKind {
     MissingTool { name: String },
     InsufficientPermission { action: String },

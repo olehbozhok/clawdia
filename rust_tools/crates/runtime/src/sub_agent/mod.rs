@@ -3,6 +3,7 @@ pub mod cancel;
 mod cascade_test;
 pub mod fail;
 pub mod inspect;
+pub mod mcp_tools;
 pub mod outcome;
 pub mod registry;
 pub mod render;
