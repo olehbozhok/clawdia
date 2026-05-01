@@ -77,6 +77,153 @@ fn to_base36(mut n: u64) -> String {
     String::from_utf8(buf).expect("base36 alphabet is ascii")
 }
 
+use std::collections::HashSet;
+use std::time::Instant;
+
+/// Minimal principal — Plan 04 enriches this with roles/identity transport
+/// but the type lives here so sessions can carry it without a circular dep.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Principal(pub String);
+
+// `TicketId` is imported from the canonical home in `crate::approvals::types`
+// (Decision D11). Do NOT redefine here.
+use crate::approvals::types::TicketId;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionStatus {
+    Active,
+    Sleeping,
+    Done,
+    Abandoned,
+}
+
+impl SessionStatus {
+    pub fn is_terminal(self) -> bool {
+        matches!(self, Self::Done | Self::Abandoned)
+    }
+}
+
+/// External dependency a session is currently blocked on.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Wait {
+    Approval(TicketId),
+    SubAgent(SessionId),
+    UserMessage,
+}
+
+/// Snapshot of a wait suitable for putting into `SystemMsg::StopWithPendingWaits`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WaitRef {
+    pub kind: WaitRefKind,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WaitRefKind {
+    Approval,
+    SubAgent,
+    UserMessage,
+}
+
+impl From<&Wait> for WaitRef {
+    fn from(w: &Wait) -> Self {
+        match w {
+            Wait::Approval(t) => WaitRef {
+                kind: WaitRefKind::Approval,
+                label: t.0.clone(),
+            },
+            Wait::SubAgent(s) => WaitRef {
+                kind: WaitRefKind::SubAgent,
+                label: s.as_str().to_string(),
+            },
+            Wait::UserMessage => WaitRef {
+                kind: WaitRefKind::UserMessage,
+                label: String::new(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Session {
+    pub id: SessionId,
+    pub parent_id: Option<SessionId>,
+    pub agent_label: String,
+    pub principal: Principal,
+    pub status: SessionStatus,
+    pub deadline: Option<Instant>,
+    pub waits: HashSet<Wait>,
+    pub started_at: Instant,
+    pub last_seen_at: Instant,
+}
+
+impl Session {
+    pub fn new(
+        id: SessionId,
+        parent_id: Option<SessionId>,
+        agent_label: String,
+        principal: Principal,
+        deadline: Option<Instant>,
+    ) -> Self {
+        let now = Instant::now();
+        Self {
+            id,
+            parent_id,
+            agent_label,
+            principal,
+            status: SessionStatus::Active,
+            deadline,
+            waits: HashSet::new(),
+            started_at: now,
+            last_seen_at: now,
+        }
+    }
+
+    /// Validates and applies a status transition.
+    pub fn transition(&mut self, next: SessionStatus) -> Result<(), SessionError> {
+        let allowed = matches!(
+            (self.status, next),
+            (SessionStatus::Active, SessionStatus::Sleeping)
+                | (SessionStatus::Active, SessionStatus::Done)
+                | (SessionStatus::Active, SessionStatus::Abandoned)
+                | (SessionStatus::Sleeping, SessionStatus::Active)
+                | (SessionStatus::Sleeping, SessionStatus::Abandoned)
+        );
+        if !allowed {
+            return Err(SessionError::IllegalTransition {
+                from: self.status,
+                to: next,
+            });
+        }
+        if next == SessionStatus::Done && !self.waits.is_empty() {
+            return Err(SessionError::FinishWithPendingWaits);
+        }
+        if next == SessionStatus::Sleeping && self.waits.is_empty() {
+            return Err(SessionError::SleepWithEmptyWaits);
+        }
+        self.status = next;
+        self.last_seen_at = Instant::now();
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SessionError {
+    #[error("illegal session transition: {from:?} -> {to:?}")]
+    IllegalTransition {
+        from: SessionStatus,
+        to: SessionStatus,
+    },
+    #[error("cannot finish session: wait set non-empty")]
+    FinishWithPendingWaits,
+    #[error("cannot sleep session: wait set empty")]
+    SleepWithEmptyWaits,
+    #[error("session not found: {0}")]
+    NotFound(String),
+    #[error("inbox closed for session {0}")]
+    InboxClosed(String),
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,5 +268,70 @@ mod tests {
     #[test]
     fn from_string_rejects_missing_prefix() {
         assert!(SessionId::from_string("1a".to_string()).is_err());
+    }
+
+    fn mk_session() -> Session {
+        Session::new(
+            SessionId::from_string("s_1".to_string()).unwrap(),
+            None,
+            "test".to_string(),
+            Principal("anon".to_string()),
+            None,
+        )
+    }
+
+    #[test]
+    fn active_to_sleeping_requires_non_empty_waits() {
+        let mut s = mk_session();
+        assert!(s.transition(SessionStatus::Sleeping).is_err());
+        s.waits.insert(Wait::UserMessage);
+        s.transition(SessionStatus::Sleeping).unwrap();
+        assert_eq!(s.status, SessionStatus::Sleeping);
+    }
+
+    #[test]
+    fn sleeping_to_active_allowed() {
+        let mut s = mk_session();
+        s.waits.insert(Wait::UserMessage);
+        s.transition(SessionStatus::Sleeping).unwrap();
+        s.transition(SessionStatus::Active).unwrap();
+        assert_eq!(s.status, SessionStatus::Active);
+    }
+
+    #[test]
+    fn active_to_done_requires_empty_waits() {
+        let mut s = mk_session();
+        s.waits.insert(Wait::UserMessage);
+        assert!(s.transition(SessionStatus::Done).is_err());
+        s.waits.clear();
+        s.transition(SessionStatus::Done).unwrap();
+        assert_eq!(s.status, SessionStatus::Done);
+    }
+
+    #[test]
+    fn active_to_abandoned_allowed_with_or_without_waits() {
+        let mut s = mk_session();
+        s.transition(SessionStatus::Abandoned).unwrap();
+        assert_eq!(s.status, SessionStatus::Abandoned);
+
+        let mut s2 = mk_session();
+        s2.waits.insert(Wait::UserMessage);
+        s2.transition(SessionStatus::Abandoned).unwrap();
+    }
+
+    #[test]
+    fn terminal_states_are_sticky() {
+        let mut s = mk_session();
+        s.transition(SessionStatus::Abandoned).unwrap();
+        assert!(s.transition(SessionStatus::Active).is_err());
+        assert!(s.transition(SessionStatus::Done).is_err());
+    }
+
+    #[test]
+    fn waitref_from_wait_preserves_label() {
+        let w = Wait::SubAgent(SessionId::from_string("s_42".to_string()).unwrap());
+        let r: WaitRef = (&w).into();
+        assert_eq!(r.kind, WaitRefKind::SubAgent);
+        assert_eq!(r.label, "s_42");
     }
 }
