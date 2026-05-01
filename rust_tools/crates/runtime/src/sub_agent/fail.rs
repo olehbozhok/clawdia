@@ -22,6 +22,9 @@ pub async fn session_fail(
     if ctx.registry.parent_of(child).is_none() {
         return Err(FailError::Unknown(child.clone()));
     }
+    // Record outcome BEFORE cancelling: cancel makes the runner return
+    // (likely Cancelled), and finalize_child prefers registry.outcome over
+    // the runner's return value — so the Failed payload wins the race.
     ctx.registry.record_outcome(
         child,
         SubAgentOutcome::Failed {

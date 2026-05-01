@@ -257,6 +257,10 @@ impl Tool for SessionDoneTool {
             .await?
             .ok_or_else(|| SubAgentToolError::InvalidSessionId(sid.as_str().to_string()))?;
 
+        // Refuse via inbox rather than erroring: gives the agent a chance to
+        // observe its own pending waits, drain them, and retry. Terminating
+        // here would also bypass child-side wait cleanup that finalize_child
+        // does on the spawn-driven path.
         if !session.waits.is_empty() {
             let n = session.waits.len();
             self.ctx

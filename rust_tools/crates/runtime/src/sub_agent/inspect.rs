@@ -17,6 +17,8 @@ pub async fn agent_get(ctx: &SpawnCtx, child: &SessionId) -> Result<AgentState, 
     if !ctx.sessions.exists(child).await? {
         return Err(InspectError::Unknown(child.clone()));
     }
+    // Registry first: finalize_child records outcome before flipping session
+    // to terminal, so during that window registry is the fresher source.
     if let Some(outcome) = ctx.registry.outcome(child) {
         return Ok(match outcome {
             SubAgentOutcome::Done { summary, result } => AgentState::Done { summary, result },
