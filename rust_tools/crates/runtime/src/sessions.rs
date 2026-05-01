@@ -277,6 +277,67 @@ pub fn evaluate_end_of_loop(input: EndOfLoopInput<'_>) -> EndOfLoopDecision {
     }
 }
 
+use crate::persistence::{Inbox, SessionStore};
+use std::sync::Arc;
+
+/// Live handle the run loop carries while a single session is in flight.
+#[derive(Clone)]
+pub struct SessionContext {
+    pub session_id: SessionId,
+    pub principal: Principal,
+    pub store: Arc<dyn SessionStore>,
+    pub inbox: Arc<dyn Inbox>,
+}
+
+impl std::fmt::Debug for SessionContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionContext")
+            .field("session_id", &self.session_id)
+            .field("principal", &self.principal)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Abandon a session: flips status to `Abandoned`, closes its inbox lane (D4),
+/// and propagates `SubAgentFinished { Cancelled }` to the parent inbox if any.
+///
+/// Idempotent: returns `Ok(())` if the session is already terminal.
+pub async fn cancel_session(
+    store: &dyn crate::persistence::SessionStore,
+    inbox: &dyn crate::persistence::Inbox,
+    sid: &SessionId,
+) -> anyhow::Result<()> {
+    let Some(sess) = store.get(sid).await? else {
+        return Ok(());
+    };
+    if sess.status.is_terminal() {
+        return Ok(());
+    }
+    store
+        .mark_terminal_from_outcome(
+            sid,
+            crate::persistence::TerminalOutcome::Abandoned(
+                crate::sub_agent::outcome::AbandonReason::ParentCancel,
+            ),
+        )
+        .await?;
+    inbox.close(sid).await?;
+    if let Some(parent) = sess.parent_id.clone() {
+        inbox
+            .push(
+                &parent,
+                crate::inbox::SystemMsg::SubAgentFinished {
+                    child_session_id: sid.clone(),
+                    agent_label: sess.agent_label.clone(),
+                    outcome: crate::sub_agent::outcome::SubAgentOutcome::Cancelled,
+                    finished_at: std::time::Instant::now(),
+                },
+            )
+            .await?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -480,5 +541,26 @@ mod tests {
         });
         assert_eq!(d.next, NextStatus::Sleeping);
         assert!(d.synthetic_msg.is_none());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn cancel_session_marks_abandoned_and_closes_inbox() {
+        use crate::persistence::memory::{InMemoryInbox, InMemorySessionStore};
+        use std::sync::Arc;
+        let store: Arc<dyn crate::persistence::SessionStore> = Arc::new(InMemorySessionStore::new());
+        let inbox: Arc<dyn crate::persistence::Inbox> = Arc::new(InMemoryInbox::new());
+        let sid = store
+            .create_root("t".to_string(), Principal("anon".to_string()), None)
+            .await
+            .unwrap();
+        let mut rx = inbox.subscribe(&sid);
+        cancel_session(store.as_ref(), inbox.as_ref(), &sid)
+            .await
+            .unwrap();
+        assert_eq!(
+            store.status(&sid).await.unwrap(),
+            Some(SessionStatus::Abandoned)
+        );
+        assert!(rx.try_recv().is_err() || rx.recv().await.is_err());
     }
 }
