@@ -71,7 +71,13 @@ impl SessionStore for InMemorySessionStore {
         deadline: Option<Instant>,
     ) -> Result<SessionId> {
         let id = self.ids.next();
-        let s = Session::new(id.clone(), Some(parent.clone()), agent_label, principal, deadline);
+        let s = Session::new(
+            id.clone(),
+            Some(parent.clone()),
+            agent_label,
+            principal,
+            deadline,
+        );
         self.sessions.insert(id.clone(), s);
         Ok(id)
     }
@@ -94,7 +100,10 @@ impl SessionStore for InMemorySessionStore {
             .get_mut(id)
             .ok_or_else(|| SessionError::NotFound(id.as_str().to_string()))?;
         entry.transition(status)?;
-        let _ = self.lane(id).events.send(SessionEvent::StatusChanged(status));
+        let _ = self
+            .lane(id)
+            .events
+            .send(SessionEvent::StatusChanged(status));
         Ok(())
     }
 
@@ -302,10 +311,7 @@ mod tests {
         let drained = inbox.drain(&id).await.unwrap();
         assert_eq!(drained.len(), 2);
         match (&drained[0], &drained[1]) {
-            (
-                SystemMsg::UserMessage { text: a, .. },
-                SystemMsg::UserMessage { text: b, .. },
-            ) => {
+            (SystemMsg::UserMessage { text: a, .. }, SystemMsg::UserMessage { text: b, .. }) => {
                 assert_eq!(a, "first");
                 assert_eq!(b, "second");
             }

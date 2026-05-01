@@ -7,9 +7,7 @@
 pub mod memory;
 
 use crate::inbox::SystemMsg;
-use crate::sessions::{
-    Principal, Session, SessionError, SessionId, SessionStatus, Wait, WaitRef,
-};
+use crate::sessions::{Principal, Session, SessionError, SessionId, SessionStatus, Wait, WaitRef};
 use std::collections::HashSet;
 use std::time::Instant;
 

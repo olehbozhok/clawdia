@@ -147,9 +147,15 @@ permit(
         let (_, schema) = generate_schema(&schema_client, &one_tool()).await.unwrap();
 
         let policy_client = FakeLlmClient::new(vec![VALID_POLICY]);
-        let policies = generate_policies(&policy_client, &schema, &one_agent(), "clawdia", &one_tool())
-            .await
-            .unwrap();
+        let policies = generate_policies(
+            &policy_client,
+            &schema,
+            &one_agent(),
+            "clawdia",
+            &one_tool(),
+        )
+        .await
+        .unwrap();
         assert_eq!(policies.len(), 1);
         assert!(policies["researcher"].contains("researcher"));
     }

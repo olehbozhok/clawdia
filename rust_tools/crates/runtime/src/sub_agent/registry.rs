@@ -24,12 +24,7 @@ impl SubAgentRegistry {
         Self::default()
     }
 
-    pub fn insert(
-        &self,
-        child: SessionId,
-        parent: SessionId,
-        label: String,
-    ) -> CancellationToken {
+    pub fn insert(&self, child: SessionId, parent: SessionId, label: String) -> CancellationToken {
         let cancel = CancellationToken::new();
         self.inner.insert(
             child,

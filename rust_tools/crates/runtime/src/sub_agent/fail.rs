@@ -81,7 +81,9 @@ mod tests {
                 } => Some((kind.clone(), message.clone(), suggested_action.clone())),
                 _ => None,
             }) {
-                assert!(matches!(found.0, FailureKind::MissingTool { ref name } if name == "fetch_pdf"));
+                assert!(
+                    matches!(found.0, FailureKind::MissingTool { ref name } if name == "fetch_pdf")
+                );
                 assert_eq!(found.1, "no tool");
                 assert_eq!(found.2.as_deref(), Some("skip source"));
                 return;

@@ -67,11 +67,7 @@ impl RigClient {
 #[async_trait::async_trait]
 impl LlmClient for RigClient {
     async fn complete(&self, system: &str, user: &str) -> Result<String> {
-        let agent = self
-            .agent
-            .agent(&self.model)
-            .preamble(system)
-            .build();
+        let agent = self.agent.agent(&self.model).preamble(system).build();
         let response = agent.prompt(user).await?;
         Ok(response)
     }

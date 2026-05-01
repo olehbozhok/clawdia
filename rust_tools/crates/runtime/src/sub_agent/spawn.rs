@@ -64,7 +64,10 @@ pub async fn spawn(
     let label2 = label.clone();
     let parent2 = parent.clone();
     tokio::spawn(async move {
-        let outcome = ctx2.runner.run(child2.clone(), prompt, cancel.clone()).await;
+        let outcome = ctx2
+            .runner
+            .run(child2.clone(), prompt, cancel.clone())
+            .await;
         // Prefer a recorded outcome (from `session_fail`) over the runner's
         // return value when both exist.
         let final_outcome = ctx2
@@ -99,7 +102,10 @@ pub(crate) async fn finalize_child(
         SubAgentOutcome::Abandoned { reason } => TerminalOutcome::Abandoned(*reason),
         SubAgentOutcome::Cancelled => TerminalOutcome::Abandoned(AbandonReason::ParentCancel),
     };
-    let _ = ctx.sessions.mark_terminal_from_outcome(&child, terminal).await;
+    let _ = ctx
+        .sessions
+        .mark_terminal_from_outcome(&child, terminal)
+        .await;
     let _ = ctx.inbox.close(&child).await;
     let _ = ctx
         .sessions
@@ -138,12 +144,7 @@ pub(crate) mod test_support {
     pub struct DoneRunner;
     #[async_trait]
     impl ChildRunner for DoneRunner {
-        async fn run(
-            &self,
-            _c: SessionId,
-            _p: String,
-            _t: CancellationToken,
-        ) -> SubAgentOutcome {
+        async fn run(&self, _c: SessionId, _p: String, _t: CancellationToken) -> SubAgentOutcome {
             SubAgentOutcome::Done {
                 summary: "ok".into(),
                 result: "[]".into(),
@@ -189,7 +190,10 @@ mod tests {
         for _ in 0..50 {
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             let waits = ctx.sessions.waits(&parent).await.unwrap();
-            if !waits.iter().any(|w| matches!(w, Wait::SubAgent(c) if *c == child)) {
+            if !waits
+                .iter()
+                .any(|w| matches!(w, Wait::SubAgent(c) if *c == child))
+            {
                 break;
             }
         }

@@ -19,8 +19,9 @@ pub async fn chat(
     authz_backend: crate::cli_args::AuthzBackendChoice,
 ) -> anyhow::Result<()> {
     let config = agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
-    let (servers, running_services) =
-        runtime::mcp::connect_all(mcp_config).await.map_err(|e| anyhow::anyhow!("{e}"))?;
+    let (servers, running_services) = runtime::mcp::connect_all(mcp_config)
+        .await
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let audit_log = AuditLog::new();
     let client = deepseek::Client::new(api_key).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -29,16 +30,15 @@ pub async fn chat(
         crate::cli_args::AuthzBackendChoice::Cedarling => {
             let cedar = CedarAuthz::from_directory(policy_store)
                 .await
-                .map_err(|e| anyhow::anyhow!(
-                    "Cedarling backend selected but failed to load policy store \
+                .map_err(|e| {
+                    anyhow::anyhow!(
+                        "Cedarling backend selected but failed to load policy store \
                      at {}: {e}. Re-run with --authz-backend yaml only for \
                      development/debugging.",
-                    policy_store.display(),
-                ))?;
-            tracing::info!(
-                "Cedar policy engine loaded from {}",
-                policy_store.display()
-            );
+                        policy_store.display(),
+                    )
+                })?;
+            tracing::info!("Cedar policy engine loaded from {}", policy_store.display());
             Some(Arc::new(cedar))
         }
         crate::cli_args::AuthzBackendChoice::Yaml => {
@@ -99,8 +99,9 @@ pub async fn chat(
 }
 
 pub async fn tools(mcp_config: &Path, json: bool) -> anyhow::Result<()> {
-    let (servers, running_services) =
-        runtime::mcp::connect_all(mcp_config).await.map_err(|e| anyhow::anyhow!("{e}"))?;
+    let (servers, running_services) = runtime::mcp::connect_all(mcp_config)
+        .await
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
 
     if json {
         let mut output = serde_json::Map::new();
@@ -145,7 +146,8 @@ pub async fn advisor_generate(
     policy_store_id: Option<&str>,
     system_entity_id: &str,
 ) -> anyhow::Result<()> {
-    let agents_cfg = runtime::agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let agents_cfg =
+        runtime::agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let mut agents = Vec::new();
     for (name, agent) in &agents_cfg.agents {
@@ -156,7 +158,9 @@ pub async fn advisor_generate(
         });
     }
 
-    let tools = advisor::discovery::discover(mcp_config).await.map_err(|e| anyhow::anyhow!("{e}"))?;
+    let tools = advisor::discovery::discover(mcp_config)
+        .await
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("Discovered {} tools across MCP servers.", tools.len());
 
     let client = advisor::RigClient::new(api_key, model).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -174,7 +178,9 @@ pub async fn advisor_generate(
         domain_hint: None,
     };
 
-    let out = advisor::run(&client, input, output.to_path_buf()).await.map_err(|e| anyhow::anyhow!("{e}"))?;
+    let out = advisor::run(&client, input, output.to_path_buf())
+        .await
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("Wrote policy store to {}", out.output_dir.display());
     Ok(())
 }

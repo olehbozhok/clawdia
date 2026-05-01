@@ -21,13 +21,18 @@ pub fn write_artifacts(target: &Path, artifacts: &Artifacts) -> Result<()> {
 
     fs::write(staging_path.join("schema.cedarschema"), &artifacts.schema)?;
     fs::write(staging_path.join("metadata.json"), &artifacts.metadata_json)?;
-    fs::write(staging_path.join("entities/agents.json"), &artifacts.agents_json)?;
-    fs::write(staging_path.join("entities/system.json"), &artifacts.system_json)?;
+    fs::write(
+        staging_path.join("entities/agents.json"),
+        &artifacts.agents_json,
+    )?;
+    fs::write(
+        staging_path.join("entities/system.json"),
+        &artifacts.system_json,
+    )?;
 
     for (agent, src) in &artifacts.policies {
         let path = staging_path.join("policies").join(format!("{agent}.cedar"));
-        fs::write(&path, src)
-            .with_context(|| format!("writing {}", path.display()))?;
+        fs::write(&path, src).with_context(|| format!("writing {}", path.display()))?;
     }
 
     if target.exists() {
@@ -73,7 +78,8 @@ mod tests {
         let mut policies = BTreeMap::new();
         policies.insert("researcher".to_string(), "// pol".to_string());
         Artifacts {
-            schema: "namespace AgentPolicy { entity Agent = {agent_type: String}; entity System; }".to_string(),
+            schema: "namespace AgentPolicy { entity Agent = {agent_type: String}; entity System; }"
+                .to_string(),
             policies,
             agents_json: "[]".to_string(),
             system_json: "[]".to_string(),

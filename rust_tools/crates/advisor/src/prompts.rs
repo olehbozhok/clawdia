@@ -31,7 +31,11 @@ The principal is `AgentPolicy::Agent::\"<agent_name>\"`, the action is \
 `AgentPolicy::Action::\"<tool_name>\"`, and the resource is \
 `AgentPolicy::System::\"<system_id>\"`. Multiple policies in one file are OK; separate by blank lines.";
 
-pub fn policy_prompt(agent: &AgentSpec, system_entity_id: &str, tools: &[DiscoveredTool]) -> (String, String) {
+pub fn policy_prompt(
+    agent: &AgentSpec,
+    system_entity_id: &str,
+    tools: &[DiscoveredTool],
+) -> (String, String) {
     let mut user = format!(
         "Agent name: {}\nAgent description: {}\nSystem entity id: {}\n\nPermitted tools:\n",
         agent.name, agent.description, system_entity_id

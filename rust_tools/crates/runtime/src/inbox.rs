@@ -59,7 +59,10 @@ pub fn render(msg: &SystemMsg) -> String {
             format!("user said: {preview}")
         }
         SystemMsg::DeadlineWarning { remaining } => {
-            format!("deadline warning: {} seconds remaining", remaining.as_secs())
+            format!(
+                "deadline warning: {} seconds remaining",
+                remaining.as_secs()
+            )
         }
     }
 }
@@ -102,7 +105,9 @@ mod tests {
             action_kind: "doc.publish".to_string(),
             decision: ApprovalOutcome::Approved,
             approver: ApproverIdentity {
-                kind: ApproverKind::LocalKey { key_id: "k1".to_string() },
+                kind: ApproverKind::LocalKey {
+                    key_id: "k1".to_string(),
+                },
                 roles: vec!["operator".to_string()],
             },
             decided_at: Instant::now(),
@@ -157,7 +162,8 @@ mod tests {
             Principal("anon".to_string()),
             None,
         );
-        sess.waits.insert(Wait::Approval(TicketId("tk_9".to_string())));
+        sess.waits
+            .insert(Wait::Approval(TicketId("tk_9".to_string())));
         let out = render_for_turn(&sess, &[]);
         assert!(out.contains("Currently waiting on:"));
         assert!(out.contains("approval:tk_9"));

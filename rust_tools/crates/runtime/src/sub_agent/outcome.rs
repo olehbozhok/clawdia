@@ -6,17 +6,24 @@ use crate::approvals::types::TicketId;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SubAgentOutcome {
-    Done { summary: String, result: String },
+    Done {
+        summary: String,
+        result: String,
+    },
     Failed {
         kind: FailureKind,
         message: String,
         suggested_action: Option<String>,
     },
-    Abandoned { reason: AbandonReason },
+    Abandoned {
+        reason: AbandonReason,
+    },
     Cancelled,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+)]
 pub enum FailureKind {
     MissingTool { name: String },
     InsufficientPermission { action: String },

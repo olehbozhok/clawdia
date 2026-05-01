@@ -20,11 +20,7 @@ pub async fn discover(mcp_config: &Path) -> Result<Vec<DiscoveredTool>> {
             tools.push(DiscoveredTool {
                 server: server.name.clone(),
                 name: t.name.to_string(),
-                description: t
-                    .description
-                    .as_deref()
-                    .unwrap_or("")
-                    .to_string(),
+                description: t.description.as_deref().unwrap_or("").to_string(),
             });
         }
     }

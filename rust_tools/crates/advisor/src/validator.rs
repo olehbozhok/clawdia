@@ -22,10 +22,7 @@ pub fn validate_policies(schema: &Schema, policies_src: &str) -> Result<()> {
     let result = validator.validate(&policy_set, cedar_policy::ValidationMode::Strict);
 
     if !result.validation_passed() {
-        let errors: Vec<String> = result
-            .validation_errors()
-            .map(|e| e.to_string())
-            .collect();
+        let errors: Vec<String> = result.validation_errors().map(|e| e.to_string()).collect();
         anyhow::bail!("policy validation failed:\n{}", errors.join("\n"));
     }
     Ok(())

@@ -342,7 +342,11 @@ mod tests {
         assert_eq!(resp.status, "running");
         let cid = SessionId::from_string(resp.child_session_id).unwrap();
         let waits = ctx.sessions.waits(&parent).await.unwrap();
-        assert!(waits.iter().any(|w| matches!(w, Wait::SubAgent(c) if *c == cid)));
+        assert!(
+            waits
+                .iter()
+                .any(|w| matches!(w, Wait::SubAgent(c) if *c == cid))
+        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -371,7 +375,10 @@ mod tests {
             })
             .await
             .unwrap();
-        assert!(matches!(st, AgentState::Running | AgentState::Sleeping { .. }));
+        assert!(matches!(
+            st,
+            AgentState::Running | AgentState::Sleeping { .. }
+        ));
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -453,13 +460,15 @@ mod tests {
         for _ in 0..50 {
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             let msgs = ctx.inbox.drain(&parent).await.unwrap();
-            if msgs.iter().any(|m| matches!(
-                m,
-                SystemMsg::SubAgentFinished {
-                    outcome: SubAgentOutcome::Failed { .. },
-                    ..
-                }
-            )) {
+            if msgs.iter().any(|m| {
+                matches!(
+                    m,
+                    SystemMsg::SubAgentFinished {
+                        outcome: SubAgentOutcome::Failed { .. },
+                        ..
+                    }
+                )
+            }) {
                 return;
             }
         }

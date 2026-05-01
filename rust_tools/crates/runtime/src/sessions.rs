@@ -54,7 +54,9 @@ pub struct SessionIdGenerator {
 
 impl SessionIdGenerator {
     pub fn new() -> Self {
-        Self { counter: AtomicU64::new(0) }
+        Self {
+            counter: AtomicU64::new(0),
+        }
     }
 
     pub fn next(&self) -> SessionId {
@@ -547,7 +549,8 @@ mod tests {
     async fn cancel_session_marks_abandoned_and_closes_inbox() {
         use crate::persistence::memory::{InMemoryInbox, InMemorySessionStore};
         use std::sync::Arc;
-        let store: Arc<dyn crate::persistence::SessionStore> = Arc::new(InMemorySessionStore::new());
+        let store: Arc<dyn crate::persistence::SessionStore> =
+            Arc::new(InMemorySessionStore::new());
         let inbox: Arc<dyn crate::persistence::Inbox> = Arc::new(InMemoryInbox::new());
         let sid = store
             .create_root("t".to_string(), Principal("anon".to_string()), None)
