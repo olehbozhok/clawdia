@@ -563,4 +563,55 @@ mod tests {
         );
         assert!(rx.try_recv().is_err() || rx.recv().await.is_err());
     }
+
+    fn s_inv() -> Session {
+        Session::new(
+            SessionId::from_string("s_inv".to_string()).unwrap(),
+            None,
+            "inv".to_string(),
+            Principal("anon".to_string()),
+            None,
+        )
+    }
+
+    #[test]
+    fn invariant_sleep_iff_waits_non_empty_forward() {
+        let mut sess = s_inv();
+        assert!(sess.transition(SessionStatus::Sleeping).is_err());
+        sess.waits.insert(Wait::UserMessage);
+        sess.transition(SessionStatus::Sleeping).unwrap();
+    }
+
+    #[test]
+    fn invariant_sleep_iff_waits_non_empty_reverse() {
+        let waits: HashSet<Wait> = HashSet::new();
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: false,
+            deadline_passed: false,
+            parent_cancelled: false,
+            llm_stop: LlmStop::Stopped,
+        });
+        assert_ne!(d.next, NextStatus::Sleeping);
+    }
+
+    #[test]
+    fn invariant_done_iff_waits_empty_and_llm_done() {
+        let mut sess = s_inv();
+        sess.waits.insert(Wait::UserMessage);
+        assert!(sess.transition(SessionStatus::Done).is_err());
+        sess.waits.clear();
+        sess.transition(SessionStatus::Done).unwrap();
+
+        let mut waits: HashSet<Wait> = HashSet::new();
+        waits.insert(Wait::UserMessage);
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: false,
+            deadline_passed: false,
+            parent_cancelled: false,
+            llm_stop: LlmStop::Stopped,
+        });
+        assert_ne!(d.next, NextStatus::Done);
+    }
 }
