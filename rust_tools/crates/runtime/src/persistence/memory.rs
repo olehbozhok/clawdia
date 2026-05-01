@@ -366,4 +366,22 @@ mod tests {
         let drained = inbox.drain(&id).await.unwrap();
         assert_eq!(drained.len(), 16);
     }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn inbox_close_after_terminal_signals_receivers() {
+        let store = Arc::new(InMemorySessionStore::new());
+        let inbox = Arc::new(InMemoryInbox::new());
+        let sid = store
+            .create_root("t".to_string(), Principal("anon".to_string()), None)
+            .await
+            .unwrap();
+        let mut rx = inbox.subscribe(&sid);
+        store
+            .mark_terminal_from_outcome(&sid, super::TerminalOutcome::Done)
+            .await
+            .unwrap();
+        inbox.close(&sid).await.unwrap();
+        let res = rx.recv().await;
+        assert!(res.is_err(), "expected closed channel after inbox.close()");
+    }
 }
