@@ -224,6 +224,59 @@ pub enum SessionError {
     InboxClosed(String),
 }
 
+// End-of-loop evaluator section follows.
+
+use crate::inbox::SystemMsg;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NextStatus {
+    Done,
+    Sleeping,
+    Abandoned,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LlmStop {
+    Stopped,
+    MaxTurns,
+}
+
+#[derive(Debug, Clone)]
+pub struct EndOfLoopInput<'a> {
+    pub waits: &'a HashSet<Wait>,
+    pub inbox_has_pending: bool,
+    pub deadline_passed: bool,
+    pub parent_cancelled: bool,
+    pub llm_stop: LlmStop,
+}
+
+#[derive(Debug, Clone)]
+pub struct EndOfLoopDecision {
+    pub next: NextStatus,
+    pub synthetic_msg: Option<SystemMsg>,
+}
+
+pub fn evaluate_end_of_loop(input: EndOfLoopInput<'_>) -> EndOfLoopDecision {
+    if input.deadline_passed || input.parent_cancelled {
+        return EndOfLoopDecision {
+            next: NextStatus::Abandoned,
+            synthetic_msg: None,
+        };
+    }
+
+    if input.waits.is_empty() && !input.inbox_has_pending {
+        return EndOfLoopDecision {
+            next: NextStatus::Done,
+            synthetic_msg: None,
+        };
+    }
+
+    EndOfLoopDecision {
+        next: NextStatus::Sleeping,
+        synthetic_msg: None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -333,5 +386,99 @@ mod tests {
         let r: WaitRef = (&w).into();
         assert_eq!(r.kind, WaitRefKind::SubAgent);
         assert_eq!(r.label, "s_42");
+    }
+
+    fn empty_waits() -> HashSet<Wait> {
+        HashSet::new()
+    }
+
+    fn one_wait() -> HashSet<Wait> {
+        let mut s = HashSet::new();
+        s.insert(Wait::SubAgent(
+            SessionId::from_string("s_9".to_string()).unwrap(),
+        ));
+        s
+    }
+
+    #[test]
+    fn empty_waits_and_empty_inbox_done() {
+        let waits = empty_waits();
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: false,
+            deadline_passed: false,
+            parent_cancelled: false,
+            llm_stop: LlmStop::Stopped,
+        });
+        assert_eq!(d.next, NextStatus::Done);
+        assert!(d.synthetic_msg.is_none());
+    }
+
+    #[test]
+    fn non_empty_waits_sleeps_no_synthetic_msg() {
+        let waits = one_wait();
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: false,
+            deadline_passed: false,
+            parent_cancelled: false,
+            llm_stop: LlmStop::Stopped,
+        });
+        assert_eq!(d.next, NextStatus::Sleeping);
+        assert!(d.synthetic_msg.is_none());
+    }
+
+    #[test]
+    fn pending_inbox_with_no_waits_still_sleeps() {
+        let waits = empty_waits();
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: true,
+            deadline_passed: false,
+            parent_cancelled: false,
+            llm_stop: LlmStop::Stopped,
+        });
+        assert_eq!(d.next, NextStatus::Sleeping);
+        assert!(d.synthetic_msg.is_none());
+    }
+
+    #[test]
+    fn deadline_overrides_to_abandoned() {
+        let waits = one_wait();
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: false,
+            deadline_passed: true,
+            parent_cancelled: false,
+            llm_stop: LlmStop::Stopped,
+        });
+        assert_eq!(d.next, NextStatus::Abandoned);
+    }
+
+    #[test]
+    fn parent_cancel_overrides_to_abandoned() {
+        let waits = empty_waits();
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: false,
+            deadline_passed: false,
+            parent_cancelled: true,
+            llm_stop: LlmStop::MaxTurns,
+        });
+        assert_eq!(d.next, NextStatus::Abandoned);
+    }
+
+    #[test]
+    fn max_turns_with_waits_still_sleeps_no_warning() {
+        let waits = one_wait();
+        let d = evaluate_end_of_loop(EndOfLoopInput {
+            waits: &waits,
+            inbox_has_pending: false,
+            deadline_passed: false,
+            parent_cancelled: false,
+            llm_stop: LlmStop::MaxTurns,
+        });
+        assert_eq!(d.next, NextStatus::Sleeping);
+        assert!(d.synthetic_msg.is_none());
     }
 }
