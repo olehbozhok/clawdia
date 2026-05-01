@@ -4,6 +4,8 @@
 //! sized so a SQLite-backed implementation in v2 can swap in without changing
 //! callers.
 
+pub mod memory;
+
 use crate::inbox::SystemMsg;
 use crate::sessions::{
     Principal, Session, SessionError, SessionId, SessionStatus, Wait, WaitRef,
