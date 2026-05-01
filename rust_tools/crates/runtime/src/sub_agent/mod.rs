@@ -1,4 +1,6 @@
 pub mod cancel;
+#[cfg(test)]
+mod cascade_test;
 pub mod fail;
 pub mod inspect;
 pub mod outcome;
