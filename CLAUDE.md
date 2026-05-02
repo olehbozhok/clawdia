@@ -30,6 +30,13 @@ Clawdia Schiffer is a policy-governed AI activist agent that researches, verifie
 - Never use byte-index slicing (`&s[..n]`) on strings. This panics on multi-byte UTF-8 characters. Always use `.chars().take(n)` or `char_indices` for truncation.
 - Any background async task (`tokio::spawn` with an unbounded loop, periodic sweep, watcher) **must** accept a `tokio_util::sync::CancellationToken` and exit on `cancel.cancelled()` via `tokio::select!`. Returning a bare `JoinHandle` without a cancel path forces callers to `abort()` and leaks in-flight work. Test the cancel path with a bounded `tokio::time::timeout`.
 
+## Answering "which option is correct?"
+
+- When the user asks "which is correct / right / better?", answer the question they asked — correctness, security, architectural soundness — not "which is cheapest to implement on top of the current code". These are different criteria and yield different answers.
+- Before answering, **check authoritative sources**: any written plan, design doc, ADR, prior decision in CLAUDE.md, threat model, or invariants encoded in existing code/tests. These hold context that isn't visible from a local code reading.
+- If the correct option diverges from the cheap/minimal option, surface BOTH explicitly: "correct = X (reason / invariant / source); cheaper alternative = Y (tradeoff Z); recommend X." Never silently substitute one criterion for another.
+- A recommendation that contradicts the documented decision without acknowledging it is a bug — it changes the question the user thought they were asking.
+
 ## Agent Configuration (`rust_tools/config/agents.yaml`)
 
 - Every sub-agent **must** have `doc_list` in `permitted_actions` so it can discover campaigns on its own.
