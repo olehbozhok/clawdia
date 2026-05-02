@@ -1,12 +1,24 @@
-//! Agent-facing MCP tools for the approval lifecycle.
+//! Agent-facing rig tools for the approval lifecycle.
 //!
 //! Each tool struct carries the calling-session id at construction time so an
 //! agent cannot impersonate another session by passing a forged id.
 //!
-//! Coverage v1: `approval_request`, `approval_status`, `approval_describe`,
-//! `approval_list_mine`. `approval_execute` (atomic gate+dispatch) is deferred
-//! until an ActionRegistry exists in the runtime — agents currently invoke the
-//! gated tool directly after Cedar reads `context.approval`.
+//! Coverage: `approval_request`, `approval_status`, `approval_describe`,
+//! `approval_execute`, `approval_list_mine`.
+//!
+//! ## Wiring status (Plan 04 outcome)
+//!
+//! These tools are NOT YET attached to any built agent. `build_agent` /
+//! `build_orchestrator` in `agents.rs` only attach MCP server tools and
+//! sub-agents-as-tools; built-in runtime tools (`AgentSpawnTool`, the
+//! `approval_*` tools, etc.) live in `BUILTIN_AGENT_TOOLS` only as
+//! authz-hook early-allow markers. Same wiring gap exists for the sub-agent
+//! tools shipped in Plan 03.
+//!
+//! Wiring is owned by Plan 06 (`RuntimeGlue`), which constructs the per-run
+//! `SessionStore`, `Inbox`, `TicketStore`, `ApprovalGateway`, `ActionRegistry`,
+//! root `SessionId`, and HMAC key, then injects them into the agent build path.
+//! Until Plan 06 lands, these tools are exercised only by unit tests.
 
 use crate::approvals::gateway::{ApprovalGateway, GatewayError};
 use crate::approvals::registry::{ActionRegistry, ActionRegistryError};
