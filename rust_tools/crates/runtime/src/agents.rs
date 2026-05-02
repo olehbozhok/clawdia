@@ -50,6 +50,7 @@ pub fn load_config(path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod yaml_tests {
     use super::load_config;
+    use crate::sub_agent::BUILTIN_AGENT_TOOLS;
     use std::path::PathBuf;
 
     fn shipped_config() -> super::Config {
@@ -58,11 +59,14 @@ mod yaml_tests {
     }
 
     #[test]
-    fn orchestrator_grants_approval_tools() {
-        // D13: assert each key individually so other plans extending this list
-        // (Plans 05/07) cannot break this test by adding unrelated entries.
+    fn approval_tools_are_builtin_not_yaml_permissions() {
+        // approval_* are runtime-internal lifecycle tools, not Cedar-gated
+        // privileges. They live in BUILTIN_AGENT_TOOLS and must NEVER appear
+        // in any agent's permitted_actions — duplication would imply they
+        // could be revoked, which would break gated-action recovery.
         let cfg = shipped_config();
-        let perms = &cfg.orchestrator.permitted_actions;
+        let mut all_lists: Vec<&Vec<String>> = vec![&cfg.orchestrator.permitted_actions];
+        all_lists.extend(cfg.agents.values().map(|a| &a.permitted_actions));
         for tool in [
             "approval_request",
             "approval_status",
@@ -71,9 +75,15 @@ mod yaml_tests {
             "approval_list_mine",
         ] {
             assert!(
-                perms.iter().any(|p| p == tool),
-                "orchestrator.permitted_actions must contain {tool}, got {perms:?}"
+                BUILTIN_AGENT_TOOLS.contains(&tool),
+                "{tool} must be in BUILTIN_AGENT_TOOLS"
             );
+            for list in &all_lists {
+                assert!(
+                    !list.iter().any(|p| p == tool),
+                    "{tool} is built-in; must not appear in permitted_actions: {list:?}"
+                );
+            }
         }
     }
 }

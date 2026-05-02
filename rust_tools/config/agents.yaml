@@ -3,7 +3,8 @@
 # Sub-agents are always available to the orchestrator (no permission needed).
 # Built-in agent runtime tools are always available to every agent and must NOT
 # be listed in permitted_actions: agent_spawn, agent_get, agent_cancel,
-# session_done, session_fail.
+# session_done, session_fail, approval_request, approval_status,
+# approval_describe, approval_execute, approval_list_mine.
 #
 # BROWSER TAB RULE (applies to all agents with chrome_* tools):
 # When using chrome_get_web_content, pass the URL directly — do not open new tabs
@@ -47,11 +48,6 @@ orchestrator:
     - doc_list_statements
     - doc_status
     - doc_get
-    - approval_request
-    - approval_status
-    - approval_describe
-    - approval_execute
-    - approval_list_mine
 
 agents:
   researcher:
