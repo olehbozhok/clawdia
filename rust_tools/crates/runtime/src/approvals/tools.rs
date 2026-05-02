@@ -9,6 +9,7 @@
 //! gated tool directly after Cedar reads `context.approval`.
 
 use crate::approvals::gateway::{ApprovalGateway, GatewayError};
+use crate::approvals::registry::{ActionRegistry, ActionRegistryError};
 use crate::approvals::types::{ApprovalRequest, TicketId, TicketStatus};
 use crate::sessions::SessionId;
 use rig::completion::ToolDefinition;
@@ -23,6 +24,8 @@ use thiserror::Error;
 pub enum ApprovalToolError {
     #[error("gateway: {0}")]
     Gateway(#[from] GatewayError),
+    #[error("registry: {0}")]
+    Registry(#[from] ActionRegistryError),
     #[error("ticket not found")]
     NotFound,
 }
@@ -220,6 +223,69 @@ impl Tool for ApprovalDescribeTool {
     }
 }
 
+// ── approval_execute ──
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ApprovalExecuteArgs {
+    pub ticket_id: String,
+    /// Args supplied at execute time. MUST hash identically to the args
+    /// stored on the ticket — drift returns `args_drift`. The handler is
+    /// invoked with the args from the ticket (single source of truth),
+    /// not these — these only feed the integrity check.
+    pub args: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApprovalExecuteResult {
+    pub ticket_id: String,
+    pub action_kind: String,
+    pub result: serde_json::Value,
+}
+
+pub struct ApprovalExecuteTool {
+    pub gateway: Arc<ApprovalGateway>,
+    pub registry: Arc<dyn ActionRegistry>,
+    pub caller_session_id: SessionId,
+}
+
+impl Tool for ApprovalExecuteTool {
+    const NAME: &'static str = "approval_execute";
+    type Error = ApprovalToolError;
+    type Args = ApprovalExecuteArgs;
+    type Output = ApprovalExecuteResult;
+
+    async fn definition(&self, _prompt: String) -> ToolDefinition {
+        ToolDefinition {
+            name: Self::NAME.to_string(),
+            description:
+                "Atomically gate and execute an approved action. Runs the six-step runtime gate \
+                 (existence, status, args_hash, expiry, signature, atomic consume) and then \
+                 dispatches via the action registry using the args stored on the ticket. Calling \
+                 a gated action directly will be denied by Cedar; callers must use this tool."
+                    .to_string(),
+            parameters: serde_json::to_value(schemars::schema_for!(ApprovalExecuteArgs))
+                .expect("schema"),
+        }
+    }
+
+    async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let id = TicketId(args.ticket_id);
+        let ok = self
+            .gateway
+            .gate_call(&id, &self.caller_session_id, &args.args)
+            .await?;
+        let result = self
+            .registry
+            .execute(&ok.ticket.action_kind, &ok.ticket.args)
+            .await?;
+        Ok(ApprovalExecuteResult {
+            ticket_id: ok.ticket.id.0,
+            action_kind: ok.ticket.action_kind,
+            result,
+        })
+    }
+}
+
 // ── approval_list_mine ──
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -280,6 +346,8 @@ impl Tool for ApprovalListMineTool {
 mod tests {
     use super::*;
     use crate::approvals::outcome::{ApprovalOutcome, ApproverIdentity, ApproverKind};
+    use crate::approvals::registry::{ActionHandler, InMemoryActionRegistry};
+    use async_trait::async_trait;
     use crate::persistence::Inbox;
     use crate::persistence::SessionStore;
     use crate::persistence::memory::{InMemoryInbox, InMemorySessionStore};
@@ -430,6 +498,179 @@ mod tests {
         assert_eq!(d.reason, "why");
         assert_eq!(d.hint.as_deref(), Some("hint"));
         assert_eq!(d.session_id, sid.into_string());
+    }
+
+    struct RecordingHandler {
+        calls: Arc<std::sync::Mutex<Vec<serde_json::Value>>>,
+    }
+
+    #[async_trait]
+    impl ActionHandler for RecordingHandler {
+        async fn execute(
+            &self,
+            args: &serde_json::Value,
+        ) -> Result<serde_json::Value, crate::approvals::registry::ActionRegistryError> {
+            self.calls.lock().unwrap().push(args.clone());
+            Ok(json!({"published": true}))
+        }
+    }
+
+    async fn approved_ticket(
+        gw: &Arc<ApprovalGateway>,
+        sid: &SessionId,
+        action_kind: &str,
+        args: serde_json::Value,
+    ) -> String {
+        let req = ApprovalRequestTool {
+            gateway: gw.clone(),
+            caller_session_id: sid.clone(),
+        };
+        let res = req
+            .call(ApprovalRequestArgs {
+                action_kind: action_kind.into(),
+                args,
+                reason: "r".into(),
+                hint: None,
+                ttl_seconds: Some(60),
+            })
+            .await
+            .unwrap();
+        gw.decide_local(
+            &TicketId(res.ticket_id.clone()),
+            ApprovalOutcome::Approved,
+            approver(),
+        )
+        .await
+        .unwrap();
+        res.ticket_id
+    }
+
+    #[tokio::test]
+    async fn approval_execute_dispatches_with_stored_args() {
+        let (gw, sid, _) = harness().await;
+        let reg = InMemoryActionRegistry::default();
+        let calls = Arc::new(std::sync::Mutex::new(vec![]));
+        reg.register(
+            "doc.publish_live",
+            Arc::new(RecordingHandler {
+                calls: calls.clone(),
+            }),
+        );
+        let reg: Arc<dyn ActionRegistry> = Arc::new(reg);
+        let stored = json!({"campaign_id": "c1"});
+        let tid = approved_ticket(&gw, &sid, "doc.publish_live", stored.clone()).await;
+        let exec = ApprovalExecuteTool {
+            gateway: gw,
+            registry: reg,
+            caller_session_id: sid,
+        };
+        let out = exec
+            .call(ApprovalExecuteArgs {
+                ticket_id: tid.clone(),
+                args: stored.clone(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(out.ticket_id, tid);
+        assert_eq!(out.result, json!({"published": true}));
+        let recorded = calls.lock().unwrap();
+        assert_eq!(recorded.len(), 1);
+        assert_eq!(recorded[0], stored);
+    }
+
+    #[tokio::test]
+    async fn approval_execute_second_call_returns_consumed() {
+        let (gw, sid, _) = harness().await;
+        let reg: Arc<dyn ActionRegistry> = {
+            let r = InMemoryActionRegistry::default();
+            r.register(
+                "act",
+                Arc::new(RecordingHandler {
+                    calls: Arc::new(std::sync::Mutex::new(vec![])),
+                }),
+            );
+            Arc::new(r)
+        };
+        let args = json!({"x": 1});
+        let tid = approved_ticket(&gw, &sid, "act", args.clone()).await;
+        let exec = ApprovalExecuteTool {
+            gateway: gw,
+            registry: reg,
+            caller_session_id: sid,
+        };
+        exec.call(ApprovalExecuteArgs {
+            ticket_id: tid.clone(),
+            args: args.clone(),
+        })
+        .await
+        .unwrap();
+        let err = exec
+            .call(ApprovalExecuteArgs {
+                ticket_id: tid,
+                args,
+            })
+            .await
+            .unwrap_err();
+        assert!(format!("{err}").contains("consumed"));
+    }
+
+    #[tokio::test]
+    async fn approval_execute_session_mismatch_rejected() {
+        let (gw, sid, other) = harness().await;
+        let reg: Arc<dyn ActionRegistry> = {
+            let r = InMemoryActionRegistry::default();
+            r.register(
+                "act",
+                Arc::new(RecordingHandler {
+                    calls: Arc::new(std::sync::Mutex::new(vec![])),
+                }),
+            );
+            Arc::new(r)
+        };
+        let args = json!({"x": 1});
+        let tid = approved_ticket(&gw, &sid, "act", args.clone()).await;
+        let exec = ApprovalExecuteTool {
+            gateway: gw,
+            registry: reg,
+            caller_session_id: other,
+        };
+        let err = exec
+            .call(ApprovalExecuteArgs {
+                ticket_id: tid,
+                args,
+            })
+            .await
+            .unwrap_err();
+        assert!(format!("{err}").contains("session mismatch"));
+    }
+
+    #[tokio::test]
+    async fn approval_execute_args_drift_rejected() {
+        let (gw, sid, _) = harness().await;
+        let reg: Arc<dyn ActionRegistry> = {
+            let r = InMemoryActionRegistry::default();
+            r.register(
+                "act",
+                Arc::new(RecordingHandler {
+                    calls: Arc::new(std::sync::Mutex::new(vec![])),
+                }),
+            );
+            Arc::new(r)
+        };
+        let tid = approved_ticket(&gw, &sid, "act", json!({"x": 1})).await;
+        let exec = ApprovalExecuteTool {
+            gateway: gw,
+            registry: reg,
+            caller_session_id: sid,
+        };
+        let err = exec
+            .call(ApprovalExecuteArgs {
+                ticket_id: tid,
+                args: json!({"x": 2}),
+            })
+            .await
+            .unwrap_err();
+        assert!(format!("{err}").contains("args drift"));
     }
 
     #[tokio::test]
