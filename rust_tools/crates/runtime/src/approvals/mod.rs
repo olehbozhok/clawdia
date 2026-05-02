@@ -3,5 +3,7 @@ pub mod correlation;
 pub mod gateway;
 pub mod outcome;
 pub mod signing;
+pub mod sweep;
+pub mod expiry_task;
 pub mod ttl;
 pub mod types;
