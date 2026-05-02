@@ -5,6 +5,7 @@
 //! callers.
 
 pub mod memory;
+pub mod tickets;
 
 use crate::inbox::SystemMsg;
 use crate::sessions::{Principal, Session, SessionError, SessionId, SessionStatus, Wait, WaitRef};
