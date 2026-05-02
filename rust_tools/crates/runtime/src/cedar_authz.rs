@@ -17,6 +17,8 @@ use serde_json::Value;
 
 use tools::authz::{AuthorizationDecision, AuthorizationResult};
 
+use crate::approvals::types::Ticket;
+
 /// Wraps a Cedarling instance for agent authorization.
 pub struct CedarAuthz {
     cedarling: Cedarling,
@@ -76,9 +78,28 @@ impl CedarAuthz {
         tool_name: &str,
         args: &Value,
     ) -> AuthorizationResult {
+        self.authorize_with_approval(agent_name, tool_name, args, None)
+            .await
+    }
+
+    /// Authorize a tool call, optionally populating Cedar `context.approval`
+    /// from a verified ticket. Callers (the `approval_execute` MCP path) pass
+    /// `Some(ticket)` after the runtime gate succeeds.
+    pub async fn authorize_with_approval(
+        &self,
+        agent_name: &str,
+        tool_name: &str,
+        args: &Value,
+        approval_ticket: Option<&Ticket>,
+    ) -> AuthorizationResult {
         let cedar_action = format!("AgentPolicy::Action::\"{tool_name}\"");
 
-        let context = build_context(tool_name, args);
+        let mut context = build_context(tool_name, args);
+        if let Some(ticket) = approval_ticket
+            && let Value::Object(map) = &mut context
+        {
+            map.insert("approval".to_string(), approval_context(ticket));
+        }
 
         let request = RequestUnsigned {
             principal: Some(EntityData {
@@ -122,6 +143,26 @@ impl CedarAuthz {
             },
         }
     }
+}
+
+/// Build the Cedar `approval` sub-context from a verified ticket. Only the
+/// fields the gating policy reads are exposed (`status`, `action_kind`).
+/// Approver authority (role check) is enforced in the runtime gateway, not
+/// in Cedar — keeps the schema free of `User`/`ApprovalTicket` entities.
+fn approval_context(ticket: &Ticket) -> Value {
+    use crate::approvals::types::TicketStatus;
+    let status = match ticket.status {
+        TicketStatus::Approved => "approved",
+        TicketStatus::Pending => "pending",
+        TicketStatus::Denied => "denied",
+        TicketStatus::Expired => "expired",
+        TicketStatus::Orphaned => "orphaned",
+        TicketStatus::Consumed => "consumed",
+    };
+    serde_json::json!({
+        "status": status,
+        "action_kind": ticket.action_kind,
+    })
 }
 
 /// Read the System entity ID from `entities/system.json`.
@@ -299,6 +340,80 @@ mod tests {
     }
 
     // ── integration test ──
+
+    fn mk_approved_ticket(action_kind: &str) -> Ticket {
+        use crate::approvals::types::{TicketId, TicketStatus};
+        use crate::sessions::SessionId;
+        use std::time::Instant;
+        let now = Instant::now();
+        Ticket {
+            id: TicketId("tk_test".into()),
+            session_id: SessionId::for_test("s1"),
+            action_kind: action_kind.into(),
+            args: json!({}),
+            args_hash: "sha256:00".into(),
+            reason: "test".into(),
+            hint: None,
+            status: TicketStatus::Approved,
+            decision: None,
+            created_at: now,
+            expires_at: now + std::time::Duration::from_secs(60),
+            decided_at: None,
+            consumed_at: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn cedar_context_approval_absent_denies_doc_publish_live() {
+        let policy_dir =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/policies");
+        let policy_dir = policy_dir.canonicalize().unwrap();
+        let authz = CedarAuthz::from_directory(&policy_dir).await.unwrap();
+        let result = authz
+            .authorize("orchestrator", "doc_publish_live", &json!({}))
+            .await;
+        assert_eq!(
+            result.decision,
+            AuthorizationDecision::Deny,
+            "doc_publish_live without ticket should be denied: {:?}",
+            result.reason
+        );
+    }
+
+    #[tokio::test]
+    async fn cedar_context_approval_populated_allows_doc_publish_live() {
+        let policy_dir =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/policies");
+        let policy_dir = policy_dir.canonicalize().unwrap();
+        let authz = CedarAuthz::from_directory(&policy_dir).await.unwrap();
+        let ticket = mk_approved_ticket("doc.publish_live");
+        let result = authz
+            .authorize_with_approval("orchestrator", "doc_publish_live", &json!({}), Some(&ticket))
+            .await;
+        assert_eq!(
+            result.decision,
+            AuthorizationDecision::Allow,
+            "doc_publish_live with approved ticket should be allowed: {:?}",
+            result.reason
+        );
+    }
+
+    #[tokio::test]
+    async fn cedar_context_approval_wrong_action_kind_denies() {
+        let policy_dir =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/policies");
+        let policy_dir = policy_dir.canonicalize().unwrap();
+        let authz = CedarAuthz::from_directory(&policy_dir).await.unwrap();
+        let ticket = mk_approved_ticket("doc.publish_draft"); // mismatched
+        let result = authz
+            .authorize_with_approval("orchestrator", "doc_publish_live", &json!({}), Some(&ticket))
+            .await;
+        assert_eq!(
+            result.decision,
+            AuthorizationDecision::Deny,
+            "ticket for different action_kind must not authorize"
+        );
+    }
 
     #[tokio::test]
     async fn integration_policy_store_authorization() {

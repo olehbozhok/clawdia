@@ -92,6 +92,6 @@ namespace AgentPolicy {
   action "doc_publish_live" appliesTo {
     principal: [Agent],
     resource: [System],
-    context: {}
+    context: { approval?: { status: String, action_kind: String } }
   };
 }
