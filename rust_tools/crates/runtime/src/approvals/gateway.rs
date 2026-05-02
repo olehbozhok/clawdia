@@ -95,6 +95,11 @@ impl ApprovalGateway {
         self
     }
 
+    /// Read-only accessors for MCP tools that need to project ticket state.
+    pub fn ticket_store(&self) -> &Arc<dyn TicketStore> {
+        &self.tickets
+    }
+
     pub async fn request(&self, req: ApprovalRequest) -> Result<Ticket, GatewayError> {
         let key = correlation_key(&req.requester, &req.action_kind, &req.args)?;
         if let Some(existing) = self.tickets.find_by_correlation(&key)? {

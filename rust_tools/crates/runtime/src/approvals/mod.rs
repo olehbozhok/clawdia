@@ -5,5 +5,6 @@ pub mod outcome;
 pub mod signing;
 pub mod sweep;
 pub mod expiry_task;
+pub mod tools;
 pub mod ttl;
 pub mod types;
