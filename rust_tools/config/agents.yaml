@@ -47,6 +47,11 @@ orchestrator:
     - doc_list_statements
     - doc_status
     - doc_get
+    - approval_request
+    - approval_status
+    - approval_describe
+    - approval_execute
+    - approval_list_mine
 
 agents:
   researcher:

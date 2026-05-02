@@ -47,6 +47,37 @@ pub fn load_config(path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
     Ok(serde_yaml::from_str(&content)?)
 }
 
+#[cfg(test)]
+mod yaml_tests {
+    use super::load_config;
+    use std::path::PathBuf;
+
+    fn shipped_config() -> super::Config {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/agents.yaml");
+        load_config(&path).expect("agents.yaml must load")
+    }
+
+    #[test]
+    fn orchestrator_grants_approval_tools() {
+        // D13: assert each key individually so other plans extending this list
+        // (Plans 05/07) cannot break this test by adding unrelated entries.
+        let cfg = shipped_config();
+        let perms = &cfg.orchestrator.permitted_actions;
+        for tool in [
+            "approval_request",
+            "approval_status",
+            "approval_describe",
+            "approval_execute",
+            "approval_list_mine",
+        ] {
+            assert!(
+                perms.iter().any(|p| p == tool),
+                "orchestrator.permitted_actions must contain {tool}, got {perms:?}"
+            );
+        }
+    }
+}
+
 const DEFAULT_MAX_TURNS: usize = 40;
 
 // ── Tool filtering ──
