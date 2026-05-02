@@ -10,6 +10,7 @@ use crate::persistence::tickets::TicketStore;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 pub async fn sweep_expired(
     tickets: &dyn TicketStore,
@@ -43,15 +44,25 @@ pub async fn sweep_expired(
     Ok(count)
 }
 
+/// Spawn the expiry sweep loop. The loop exits when `cancel` is triggered,
+/// so callers must hold the token (typically a runtime-wide shutdown token)
+/// and cancel it during graceful shutdown. Without cancellation the task
+/// can only be torn down via `JoinHandle::abort`.
 pub fn spawn(
     tickets: Arc<dyn TicketStore>,
     inbox: Arc<dyn Inbox>,
     interval: Duration,
+    cancel: CancellationToken,
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
         loop {
-            tokio::time::sleep(interval).await;
-            let _ = sweep_expired(&*tickets, &*inbox, Instant::now()).await;
+            tokio::select! {
+                biased;
+                _ = cancel.cancelled() => break,
+                _ = tokio::time::sleep(interval) => {
+                    let _ = sweep_expired(&*tickets, &*inbox, Instant::now()).await;
+                }
+            }
         }
     })
 }
@@ -152,6 +163,20 @@ mod tests {
         assert_eq!(count, 0);
         let all = store.list_all().unwrap();
         assert!(all.iter().all(|t| t.status != TicketStatus::Expired));
+    }
+
+    #[tokio::test]
+    async fn spawn_loop_exits_on_cancel() {
+        let store: Arc<dyn TicketStore> = InMemoryTicketStore::new();
+        let inbox: Arc<dyn Inbox> = Arc::new(InMemoryInbox::new());
+        let cancel = CancellationToken::new();
+        let handle = spawn(store, inbox, Duration::from_millis(50), cancel.clone());
+        cancel.cancel();
+        // Bounded wait: handle must complete promptly after cancellation.
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("expiry task should exit on cancel")
+            .unwrap();
     }
 
     #[tokio::test]
