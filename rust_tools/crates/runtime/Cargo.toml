@@ -32,3 +32,6 @@ hex = "0.4"
 hmac = "0.12"
 rand = "0.8"
 regex = "1"
+
+[dev-dependencies]
+tracing-test = "0.2"

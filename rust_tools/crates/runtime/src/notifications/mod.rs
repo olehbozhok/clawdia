@@ -5,4 +5,5 @@
 //! `Severity` lives here as the canonical home (D10) and is imported by Plan
 //! 06 for TUI rendering. Do not redefine elsewhere.
 
+pub mod emit;
 pub mod types;
