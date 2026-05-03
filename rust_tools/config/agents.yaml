@@ -48,6 +48,7 @@ orchestrator:
     - doc_list_statements
     - doc_status
     - doc_get
+    - notify_human
 
 agents:
   researcher:

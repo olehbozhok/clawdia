@@ -89,6 +89,12 @@ namespace AgentPolicy {
     context: {}
   };
 
+  action "notify_human" appliesTo {
+    principal: [Agent],
+    resource: [System],
+    context: { severity?: String }
+  };
+
   action "doc_publish_live" appliesTo {
     principal: [Agent],
     resource: [System],

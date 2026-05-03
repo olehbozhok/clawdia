@@ -416,6 +416,40 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn notify_human_permitted_for_orchestrator() {
+        let policy_dir =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/policies");
+        let policy_dir = policy_dir.canonicalize().unwrap();
+        let authz = CedarAuthz::from_directory(&policy_dir).await.unwrap();
+        let result = authz
+            .authorize("orchestrator", "notify_human", &json!({}))
+            .await;
+        assert_eq!(
+            result.decision,
+            AuthorizationDecision::Allow,
+            "orchestrator must be permitted to notify human: {:?}",
+            result.reason
+        );
+    }
+
+    #[tokio::test]
+    async fn notify_human_denied_for_sub_agents() {
+        let policy_dir =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/policies");
+        let policy_dir = policy_dir.canonicalize().unwrap();
+        let authz = CedarAuthz::from_directory(&policy_dir).await.unwrap();
+        for agent in ["researcher", "verifier", "copywriter"] {
+            let result = authz.authorize(agent, "notify_human", &json!({})).await;
+            assert_eq!(
+                result.decision,
+                AuthorizationDecision::Deny,
+                "{agent} must NOT be permitted to notify human directly (design §17.4 — sub-agents report upstream): {:?}",
+                result.reason
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn integration_policy_store_authorization() {
         // Path relative to the runtime crate root
         let policy_dir =
