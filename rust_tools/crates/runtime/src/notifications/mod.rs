@@ -6,4 +6,5 @@
 //! 06 for TUI rendering. Do not redefine elsewhere.
 
 pub mod emit;
+pub mod tool;
 pub mod types;

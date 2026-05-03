@@ -10,7 +10,17 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::SystemTime;
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
 )]
 #[serde(rename_all = "lowercase")]
 pub enum Severity {
@@ -61,7 +71,7 @@ fn base36(mut n: u64) -> String {
     String::from_utf8(out).expect("base36 alphabet is ascii")
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct NotificationRefs {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub session_id: Option<SessionId>,

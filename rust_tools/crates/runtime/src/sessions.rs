@@ -6,7 +6,16 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Opaque session identifier. Always rendered as `s_<base36 counter>`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    schemars::JsonSchema,
+)]
 pub struct SessionId(String);
 
 impl SessionId {
