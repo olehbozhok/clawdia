@@ -4,6 +4,7 @@ pub mod authz_hook;
 pub mod cedar_authz;
 pub mod inbox;
 pub mod mcp;
+pub mod notifications;
 pub mod persistence;
 pub mod policy_prompt;
 pub mod sessions;
