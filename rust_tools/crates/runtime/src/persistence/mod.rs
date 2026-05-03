@@ -5,6 +5,7 @@
 //! callers.
 
 pub mod memory;
+pub mod notifications;
 pub mod tickets;
 
 use crate::inbox::SystemMsg;
