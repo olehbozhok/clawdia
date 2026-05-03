@@ -42,6 +42,7 @@ Clawdia Schiffer is a policy-governed AI activist agent that researches, verifie
 - Before deferring a plan task as "blocked on something later", split it into sub-parts and defer ONLY the parts actually blocked. A task that is "implement X struct + attach X to build_agent" should usually become "implement X (now) + attach X (deferred)", not "defer the whole thing".
 - Cross-check against prior work in the same repo: if an analogous task was implemented as a self-contained struct + tests with the attach step deferred (e.g. `approval_*` tools in `approvals/tools.rs` while the wiring sits unwired in `agents.rs`), follow that precedent. Diverging from it without a reason creates inconsistent partial implementations that are harder to wire up later.
 - When you defer, be explicit about the scope of the deferral (which sub-task, which plan owns the follow-up) — both in the commit message and in a doc comment on whatever you DID land. "Deferred to Plan 06" alone is not enough; say what specifically.
+- **Surface every deferral to the user, before committing**, with a concrete reason that survives scrutiny. Acceptable reasons: missing dependency owned by another plan/PR, requires a destructive refactor outside scope, blocked on a decision the user has not made. Unacceptable: "feels like scope creep", "saves time", "I'll do it later". If you cannot state a reason that the user would accept on its own, do the work — do not defer.
 
 ## Agent Configuration (`rust_tools/config/agents.yaml`)
 
