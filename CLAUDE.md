@@ -37,6 +37,12 @@ Clawdia Schiffer is a policy-governed AI activist agent that researches, verifie
 - If the correct option diverges from the cheap/minimal option, surface BOTH explicitly: "correct = X (reason / invariant / source); cheaper alternative = Y (tradeoff Z); recommend X." Never silently substitute one criterion for another.
 - A recommendation that contradicts the documented decision without acknowledging it is a bug — it changes the question the user thought they were asking.
 
+## Deferring tasks
+
+- Before deferring a plan task as "blocked on something later", split it into sub-parts and defer ONLY the parts actually blocked. A task that is "implement X struct + attach X to build_agent" should usually become "implement X (now) + attach X (deferred)", not "defer the whole thing".
+- Cross-check against prior work in the same repo: if an analogous task was implemented as a self-contained struct + tests with the attach step deferred (e.g. `approval_*` tools in `approvals/tools.rs` while the wiring sits unwired in `agents.rs`), follow that precedent. Diverging from it without a reason creates inconsistent partial implementations that are harder to wire up later.
+- When you defer, be explicit about the scope of the deferral (which sub-task, which plan owns the follow-up) — both in the commit message and in a doc comment on whatever you DID land. "Deferred to Plan 06" alone is not enough; say what specifically.
+
 ## Agent Configuration (`rust_tools/config/agents.yaml`)
 
 - Every sub-agent **must** have `doc_list` in `permitted_actions` so it can discover campaigns on its own.
