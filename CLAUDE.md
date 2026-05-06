@@ -56,12 +56,3 @@ Clawdia Schiffer is a policy-governed AI activist agent that researches, verifie
 
 - Always use `uv run pyright` to validate Python code instead of running the app, when possible.
 - Fix all pyright errors before considering the task complete.
-
-## Memory Instructions
-
-- On startup: call `mempalace_status` to load the palace
-- Before answering questions about past work: call `mempalace_search`
-- When asked to remember something: call `mempalace_add_drawer` and `mempalace_kg_add`
-- At end of meaningful sessions: write diary with `mempalace_diary_write`
-- **Always use English** for all mempalace interactions (searches, drawer names, descriptions, diary entries, KG triples). Never use other languages.
-
