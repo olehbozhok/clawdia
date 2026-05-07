@@ -12,7 +12,7 @@ use crate::mcp::McpServer;
 use crate::policy_prompt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tools::authz::{AuditEntry, AuthorizationDecision, Principal};
+use tools::authz::{AuditEntry, Principal};
 
 // ── Config types ──
 
@@ -276,22 +276,13 @@ impl AuditLog {
     }
 
     pub fn append(&self, entry: AuditEntry) {
-        let decision_icon = match entry.decision {
-            AuthorizationDecision::Allow => "✅",
-            AuthorizationDecision::Deny => "🚫",
-        };
-        println!(
-            "  │  {icon} [{principal}] {action} on {resource} → {decision:?}{reason}",
-            icon = decision_icon,
-            principal = entry.principal_id,
-            action = entry.action,
-            resource = entry.resource,
-            decision = entry.decision,
-            reason = entry
-                .denial_reason
-                .as_deref()
-                .map(|r| format!(" ({r})"))
-                .unwrap_or_default(),
+        tracing::info!(
+            principal = %entry.principal_id,
+            action = %entry.action,
+            resource = %entry.resource,
+            decision = ?entry.decision,
+            denial_reason = ?entry.denial_reason,
+            "authz decision",
         );
         self.entries.lock().expect("lock poisoned").push(entry);
     }
