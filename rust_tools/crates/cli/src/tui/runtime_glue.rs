@@ -1,7 +1,7 @@
 use runtime::approvals::outcome::{ApprovalOutcome, ApproverIdentity, ApproverKind};
 use runtime::approvals::types::TicketId;
 use runtime::persistence::notifications::NotificationStore;
-use runtime::persistence::SessionStore;
+use runtime::persistence::{Inbox, SessionStore};
 use runtime::sessions::SessionId;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
@@ -14,6 +14,7 @@ use super::AppEvent;
 pub struct RuntimeGlue {
     pub gateway: Arc<runtime::approvals::gateway::ApprovalGateway>,
     pub sessions: Arc<dyn SessionStore>,
+    pub inbox: Arc<dyn Inbox>,
     pub notifications: Arc<dyn NotificationStore>,
     pub hmac_key: Arc<Vec<u8>>,
     pub local_key_id: String,
@@ -50,6 +51,16 @@ impl RuntimeGlue {
                 }
             }
         })
+    }
+
+    /// Best-effort cancel of the root session on shutdown.
+    pub async fn shutdown(&self) {
+        let _ = runtime::sessions::cancel_session(
+            self.sessions.as_ref(),
+            self.inbox.as_ref(),
+            &self.root_session,
+        )
+        .await;
     }
 
     pub async fn approve(
@@ -97,9 +108,11 @@ mod tests {
             .unwrap();
 
         let root_clone = root.clone();
+        let inbox: Arc<dyn Inbox> = Arc::new(InMemoryInbox::new());
         let glue = RuntimeGlue {
             gateway,
             sessions,
+            inbox,
             notifications: notifications.clone(),
             hmac_key: Arc::new(vec![]),
             local_key_id: "local".into(),

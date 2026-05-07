@@ -93,6 +93,7 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
     let glue = crate::tui::runtime_glue::RuntimeGlue {
         gateway: runtime.gateway.clone(),
         sessions: runtime.session_store.clone(),
+        inbox: runtime.inbox.clone(),
         notifications: runtime.notification_store.clone(),
         hmac_key: Arc::new(runtime.hmac_key.clone()),
         local_key_id: runtime.local_key_id.clone(),
@@ -119,12 +120,20 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
         let mut reader = crossterm::event::EventStream::new();
         loop {
             use futures_util::StreamExt;
-            match reader.next().await {
-                Some(Ok(crossterm::event::Event::Key(key))) => {
-                    let _ = crossterm_tx.send(AppEvent::Key(key));
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {
+                    let _ = crossterm_tx.send(AppEvent::Quit);
+                    break;
                 }
-                Some(Err(_)) | None => break,
-                _ => {}
+                event = reader.next() => {
+                    match event {
+                        Some(Ok(crossterm::event::Event::Key(key))) => {
+                            let _ = crossterm_tx.send(AppEvent::Key(key));
+                        }
+                        Some(Err(_)) | None => break,
+                        _ => {}
+                    }
+                }
             }
         }
     });
@@ -255,10 +264,10 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
             .ok();
     };
 
+    glue.shutdown().await;
     cancel.cancel();
     for svc in running_services {
         let _ = svc.cancel().await;
-        // ignore errors during shutdown
     }
     ratatui::restore();
     result
