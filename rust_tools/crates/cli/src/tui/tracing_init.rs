@@ -1,5 +1,5 @@
 use tracing_appender::{non_blocking, rolling};
-use tracing_subscriber::{prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, prelude::*};
 
 pub struct AppenderGuard {
     _guard: tracing_appender::non_blocking::WorkerGuard,
@@ -19,8 +19,7 @@ pub fn init_tracing(
     let file_appender = rolling::daily(log_dir, "runtime.log");
     let (file_nb, guard) = non_blocking(file_appender);
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     let registry = tracing_subscriber::registry()
         .with(filter)
@@ -31,7 +30,9 @@ pub fn init_tracing(
                 .with_ansi(false),
         );
 
-    registry.try_init().map_err(|e| anyhow::anyhow!("tracing init: {e}"))?;
+    registry
+        .try_init()
+        .map_err(|e| anyhow::anyhow!("tracing init: {e}"))?;
     Ok(AppenderGuard::new(guard))
 }
 

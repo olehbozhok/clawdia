@@ -1,9 +1,9 @@
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::Stylize;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::Frame;
 use runtime::sessions::SessionId;
 use std::time::{Duration, Instant};
 
@@ -89,16 +89,14 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ApprovalsState, focused: bo
             "Reason for denial:\n{}\n\n[Enter] submit  [Esc] cancel",
             state.deny_reason
         );
-        let para = Paragraph::new(modal_text).block(
-            Block::default().title(" Deny ").borders(Borders::ALL),
-        );
+        let para = Paragraph::new(modal_text)
+            .block(Block::default().title(" Deny ").borders(Borders::ALL));
         frame.render_widget(para, area);
         return;
     }
 
     if state.pending.is_empty() {
-        let para = Paragraph::new(Line::from(Span::raw("No pending approvals")))
-            .block(block);
+        let para = Paragraph::new(Line::from(Span::raw("No pending approvals"))).block(block);
         frame.render_widget(para, area);
         return;
     }
@@ -123,16 +121,19 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ApprovalsState, focused: bo
         })
         .collect();
 
-    let list_para = Paragraph::new(list_lines).block(
-        Block::default().title("Pending").borders(Borders::ALL),
-    );
+    let list_para =
+        Paragraph::new(list_lines).block(Block::default().title("Pending").borders(Borders::ALL));
     frame.render_widget(list_para, chunks[0]);
 
     if let Some(ticket) = state.pending.get(state.selected) {
         let ttl = state.remaining_for(&ticket.id, Instant::now());
         let mins = ttl.as_secs() / 60;
         let secs = ttl.as_secs() % 60;
-        let hint_line = ticket.hint.as_deref().map(|h| format!("\nHint: {h}")).unwrap_or_default();
+        let hint_line = ticket
+            .hint
+            .as_deref()
+            .map(|h| format!("\nHint: {h}"))
+            .unwrap_or_default();
         let detail_text = format!(
             "Action: {}\nSession: {}\nReason: {}\nArgs: {}{hint_line}\nTTL: {mins:02}:{secs:02}",
             ticket.action_kind,
@@ -140,9 +141,8 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ApprovalsState, focused: bo
             ticket.reason,
             serde_json::to_string_pretty(&ticket.args).unwrap_or_default(),
         );
-        let detail_para = Paragraph::new(detail_text).block(
-            Block::default().title("Detail").borders(Borders::ALL),
-        );
+        let detail_para = Paragraph::new(detail_text)
+            .block(Block::default().title("Detail").borders(Borders::ALL));
         frame.render_widget(detail_para, chunks[1]);
     }
 }
@@ -187,8 +187,7 @@ mod tests {
         let t0 = Instant::now();
         let remaining = s.remaining_for(s.selected_id().unwrap(), t0);
         assert!(remaining <= Duration::from_secs(30));
-        let later =
-            s.remaining_for(s.selected_id().unwrap(), t0 + Duration::from_secs(10));
+        let later = s.remaining_for(s.selected_id().unwrap(), t0 + Duration::from_secs(10));
         assert!(later < remaining);
     }
 }

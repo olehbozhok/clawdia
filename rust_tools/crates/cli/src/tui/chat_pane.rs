@@ -1,9 +1,9 @@
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::Stylize;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::Frame;
 use runtime::notifications::types::Severity;
 
 pub fn severity_color(severity: &Severity) -> (Color, Modifier) {
@@ -18,10 +18,24 @@ pub fn severity_color(severity: &Severity) -> (Color, Modifier) {
 #[derive(Debug, Clone)]
 pub enum ChatMsg {
     User(String),
-    Agent { label: String, text: String },
-    SubAgentSpawn { label: String, child: String },
-    SubAgentFinish { label: String, child: String, outcome: String },
-    Notify { severity: Severity, subject: String, body: String },
+    Agent {
+        label: String,
+        text: String,
+    },
+    SubAgentSpawn {
+        label: String,
+        child: String,
+    },
+    SubAgentFinish {
+        label: String,
+        child: String,
+        outcome: String,
+    },
+    Notify {
+        severity: Severity,
+        subject: String,
+        body: String,
+    },
 }
 
 #[derive(Debug, Default)]
@@ -51,19 +65,23 @@ fn render_chat_msg<'a>(msg: &'a ChatMsg, width: usize) -> Line<'a> {
                 Style::default().fg(Color::Green),
             ))
         }
-        ChatMsg::SubAgentSpawn { label, child } => {
-            Line::from(Span::styled(
-                format!("⚡ spawned {label}/{child}"),
-                Style::default().fg(Color::Blue),
-            ))
-        }
-        ChatMsg::SubAgentFinish { label, child, outcome } => {
-            Line::from(Span::styled(
-                format!("✓ {label}/{child} finished: {outcome}"),
-                Style::default().fg(Color::Blue),
-            ))
-        }
-        ChatMsg::Notify { severity, subject, body } => {
+        ChatMsg::SubAgentSpawn { label, child } => Line::from(Span::styled(
+            format!("⚡ spawned {label}/{child}"),
+            Style::default().fg(Color::Blue),
+        )),
+        ChatMsg::SubAgentFinish {
+            label,
+            child,
+            outcome,
+        } => Line::from(Span::styled(
+            format!("✓ {label}/{child} finished: {outcome}"),
+            Style::default().fg(Color::Blue),
+        )),
+        ChatMsg::Notify {
+            severity,
+            subject,
+            body,
+        } => {
             let (color, modifier) = severity_color(severity);
             let prefix = match severity {
                 Severity::Info => "[INFO]",
@@ -99,10 +117,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ChatState, focused: bool) {
     let inner = block.inner(area);
     let chunks = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
-        .constraints([
-            Constraint::Min(1),
-            Constraint::Length(3),
-        ])
+        .constraints([Constraint::Min(1), Constraint::Length(3)])
         .split(inner);
 
     let lines: Vec<Line> = state
@@ -114,17 +129,25 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ChatState, focused: bool) {
     let history_para = Paragraph::new(lines).scroll((state.scroll, 0));
     frame.render_widget(history_para, chunks[0]);
 
-    let input_text: String = state.input.value().chars().take(chunks[1].width as usize).collect();
-    let input_para = Paragraph::new(input_text)
-        .style(if focused { Style::default() } else { Style::default().dim() });
+    let input_text: String = state
+        .input
+        .value()
+        .chars()
+        .take(chunks[1].width as usize)
+        .collect();
+    let input_para = Paragraph::new(input_text).style(if focused {
+        Style::default()
+    } else {
+        Style::default().dim()
+    });
     frame.render_widget(input_para, chunks[1]);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ratatui::backend::TestBackend;
     use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
 
     #[test]
     fn truncate_uses_chars_not_bytes() {

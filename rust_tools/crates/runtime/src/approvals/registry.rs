@@ -26,11 +26,7 @@ pub trait ActionHandler: Send + Sync {
 
 #[async_trait]
 pub trait ActionRegistry: Send + Sync {
-    async fn execute(
-        &self,
-        action_kind: &str,
-        args: &Value,
-    ) -> Result<Value, ActionRegistryError>;
+    async fn execute(&self, action_kind: &str, args: &Value) -> Result<Value, ActionRegistryError>;
 }
 
 #[derive(Default)]
@@ -50,11 +46,7 @@ impl InMemoryActionRegistry {
 
 #[async_trait]
 impl ActionRegistry for InMemoryActionRegistry {
-    async fn execute(
-        &self,
-        action_kind: &str,
-        args: &Value,
-    ) -> Result<Value, ActionRegistryError> {
+    async fn execute(&self, action_kind: &str, args: &Value) -> Result<Value, ActionRegistryError> {
         let handler = self
             .handlers
             .get(action_kind)

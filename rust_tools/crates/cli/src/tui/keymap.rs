@@ -44,9 +44,7 @@ pub fn dispatch(pane: Pane, key: KeyEvent) -> Action {
         (Pane::Approvals, KeyCode::Char('k'), _) | (Pane::Approvals, KeyCode::Up, _) => {
             Action::SelectPrev
         }
-        (Pane::Approvals, KeyCode::Char('a'), _) => {
-            Action::ApprovalDecide(ApprovalChoice::Approve)
-        }
+        (Pane::Approvals, KeyCode::Char('a'), _) => Action::ApprovalDecide(ApprovalChoice::Approve),
         (Pane::Approvals, KeyCode::Char('d'), _) => Action::OpenDenyModal,
         (Pane::Approvals, KeyCode::Char('s'), _) => Action::ApprovalDecide(ApprovalChoice::Skip),
 
@@ -71,7 +69,10 @@ mod tests {
     fn approve_key_in_approvals_pane_emits_approve_action() {
         let ev = key('a', KeyModifiers::NONE);
         let act = dispatch(Pane::Approvals, ev);
-        assert!(matches!(act, Action::ApprovalDecide(ApprovalChoice::Approve)));
+        assert!(matches!(
+            act,
+            Action::ApprovalDecide(ApprovalChoice::Approve)
+        ));
     }
 
     #[test]

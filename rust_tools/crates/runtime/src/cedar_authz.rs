@@ -388,7 +388,12 @@ mod tests {
         let authz = CedarAuthz::from_directory(&policy_dir).await.unwrap();
         let ticket = mk_approved_ticket("doc.publish_live");
         let result = authz
-            .authorize_with_approval("orchestrator", "doc_publish_live", &json!({}), Some(&ticket))
+            .authorize_with_approval(
+                "orchestrator",
+                "doc_publish_live",
+                &json!({}),
+                Some(&ticket),
+            )
             .await;
         assert_eq!(
             result.decision,
@@ -406,7 +411,12 @@ mod tests {
         let authz = CedarAuthz::from_directory(&policy_dir).await.unwrap();
         let ticket = mk_approved_ticket("doc.publish_draft"); // mismatched
         let result = authz
-            .authorize_with_approval("orchestrator", "doc_publish_live", &json!({}), Some(&ticket))
+            .authorize_with_approval(
+                "orchestrator",
+                "doc_publish_live",
+                &json!({}),
+                Some(&ticket),
+            )
             .await;
         assert_eq!(
             result.decision,

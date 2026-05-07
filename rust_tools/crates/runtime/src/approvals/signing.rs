@@ -107,6 +107,15 @@ mod tests {
         let k = key();
         let sig = sign(&k, &tid(), "sha256:aa", &ApprovalOutcome::Approved).unwrap();
         let other = vec![0x11u8; 32];
-        assert!(verify(&other, &tid(), "sha256:aa", &ApprovalOutcome::Approved, &sig).is_err());
+        assert!(
+            verify(
+                &other,
+                &tid(),
+                "sha256:aa",
+                &ApprovalOutcome::Approved,
+                &sig
+            )
+            .is_err()
+        );
     }
 }

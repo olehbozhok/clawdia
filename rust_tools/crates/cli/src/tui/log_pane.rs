@@ -1,8 +1,10 @@
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState};
-use ratatui::Frame;
+use ratatui::widgets::{
+    Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+};
 use std::collections::VecDeque;
 
 use super::log_layer::LogLine;
@@ -76,9 +78,10 @@ pub fn render(frame: &mut Frame, area: Rect, state: &LogState, focused: bool) {
         .take(inner.height as usize)
         .map(|l| {
             let color = severity_color(&l.level);
-            let ts = l.at.duration_since(std::time::UNIX_EPOCH)
-                .map(|d| format!("{:>10.3}", d.as_secs_f64()))
-                .unwrap_or_default();
+            let ts =
+                l.at.duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| format!("{:>10.3}", d.as_secs_f64()))
+                    .unwrap_or_default();
             let raw = format!("{ts} {target} {msg}", target = l.target, msg = l.message);
             let preview: String = raw.chars().take(inner.width as usize).collect();
             Line::from(Span::styled(preview, Style::default().fg(color)))
@@ -100,8 +103,8 @@ pub fn render(frame: &mut Frame, area: Rect, state: &LogState, focused: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ratatui::backend::TestBackend;
     use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
 
     #[test]
     fn renders_warn_with_yellow() {
@@ -114,8 +117,7 @@ mod tests {
         });
         let backend = TestBackend::new(40, 4);
         let mut term = Terminal::new(backend).unwrap();
-        term.draw(|f| render(f, f.area(), &state, false))
-            .unwrap();
+        term.draw(|f| render(f, f.area(), &state, false)).unwrap();
         let buf = term.backend().buffer();
         let cell = buf.cell((1, 1)).unwrap();
         assert_eq!(cell.fg, ratatui::style::Color::Yellow);

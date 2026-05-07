@@ -67,23 +67,21 @@ impl App {
             AppEvent::Chat(msg) => {
                 self.chat.history.push(msg);
             }
-            AppEvent::Approval(ev) => {
-                match ev {
-                    approvals_pane::ApprovalEvent::SetPending(tickets) => {
-                        self.approvals.set_pending(tickets);
-                    }
-                    approvals_pane::ApprovalEvent::SelectNext => {
-                        self.approvals.select_next();
-                    }
-                    approvals_pane::ApprovalEvent::SelectPrev => {
-                        self.approvals.select_prev();
-                    }
-                    approvals_pane::ApprovalEvent::DenyModalClosed => {
-                        self.approvals.deny_modal_open = false;
-                        self.approvals.deny_reason.clear();
-                    }
+            AppEvent::Approval(ev) => match ev {
+                approvals_pane::ApprovalEvent::SetPending(tickets) => {
+                    self.approvals.set_pending(tickets);
                 }
-            }
+                approvals_pane::ApprovalEvent::SelectNext => {
+                    self.approvals.select_next();
+                }
+                approvals_pane::ApprovalEvent::SelectPrev => {
+                    self.approvals.select_prev();
+                }
+                approvals_pane::ApprovalEvent::DenyModalClosed => {
+                    self.approvals.deny_modal_open = false;
+                    self.approvals.deny_reason.clear();
+                }
+            },
             AppEvent::Key(_) => {}
         }
     }

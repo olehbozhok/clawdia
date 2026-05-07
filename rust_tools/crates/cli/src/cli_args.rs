@@ -127,11 +127,20 @@ pub struct ChatArgs {
     pub model: String,
 
     /// Path to Cedar policy store directory
-    #[arg(long, env = "CLAWDIA_POLICY_STORE_PATH", default_value = "config/policies")]
+    #[arg(
+        long,
+        env = "CLAWDIA_POLICY_STORE_PATH",
+        default_value = "config/policies"
+    )]
     pub policy_store: PathBuf,
 
     /// Authorization backend
-    #[arg(long, env = "CLAWDIA_AUTHZ_BACKEND", value_enum, default_value = "cedarling")]
+    #[arg(
+        long,
+        env = "CLAWDIA_AUTHZ_BACKEND",
+        value_enum,
+        default_value = "cedarling"
+    )]
     pub authz_backend: AuthzBackendChoice,
 
     /// HMAC key for local approval signing (required). Env: APPROVER_HMAC_KEY.

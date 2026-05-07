@@ -31,17 +31,20 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
 
     let cedar = match args.authz_backend {
         AuthzBackendChoice::Cedarling => {
-            let cedar = CedarAuthz::from_directory(&args.policy_store).await.map_err(
-                |e| {
+            let cedar = CedarAuthz::from_directory(&args.policy_store)
+                .await
+                .map_err(|e| {
                     anyhow::anyhow!(
                         "Cedarling backend selected but failed to load policy store \
                      at {}: {e}. Re-run with --authz-backend yaml only for \
                      development/debugging.",
                         args.policy_store.display(),
                     )
-                },
-            )?;
-            tracing::info!("Cedar policy engine loaded from {}", args.policy_store.display());
+                })?;
+            tracing::info!(
+                "Cedar policy engine loaded from {}",
+                args.policy_store.display()
+            );
             Some(Arc::new(cedar))
         }
         AuthzBackendChoice::Yaml => {
@@ -76,11 +79,7 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
     let deadline = session_ttl.map(|d| std::time::Instant::now() + d);
     let sid = runtime
         .session_store
-        .create_root(
-            "orchestrator".into(),
-            Principal("anon".into()),
-            deadline,
-        )
+        .create_root("orchestrator".into(), Principal("anon".into()), deadline)
         .await?;
 
     let client = deepseek::Client::new(&args.api_key)?;
@@ -280,24 +279,14 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
                     ])
                     .split(main_chunks[0]);
 
-                crate::tui::chat_pane::render(
-                    f,
-                    top_chunks[0],
-                    &app.chat,
-                    app.focus == Pane::Chat,
-                );
+                crate::tui::chat_pane::render(f, top_chunks[0], &app.chat, app.focus == Pane::Chat);
                 crate::tui::approvals_pane::render(
                     f,
                     top_chunks[1],
                     &app.approvals,
                     app.focus == Pane::Approvals,
                 );
-                crate::tui::log_pane::render(
-                    f,
-                    main_chunks[1],
-                    &app.log,
-                    app.focus == Pane::Log,
-                );
+                crate::tui::log_pane::render(f, main_chunks[1], &app.log, app.focus == Pane::Log);
             })
             .ok();
     };
@@ -374,8 +363,7 @@ pub async fn advisor_generate(
         .map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("Discovered {} tools across MCP servers.", tools.len());
 
-    let client =
-        advisor::RigClient::new(api_key, model).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let client = advisor::RigClient::new(api_key, model).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let policy_store_id = match policy_store_id {
         Some(id) => id.to_string(),

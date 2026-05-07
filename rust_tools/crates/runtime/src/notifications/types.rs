@@ -107,7 +107,10 @@ mod tests {
     #[test]
     fn severity_serde_lowercase() {
         assert_eq!(serde_json::to_string(&Severity::Warn).unwrap(), "\"warn\"");
-        assert_eq!(serde_json::to_string(&Severity::Blocker).unwrap(), "\"blocker\"");
+        assert_eq!(
+            serde_json::to_string(&Severity::Blocker).unwrap(),
+            "\"blocker\""
+        );
         let parsed: Severity = serde_json::from_str("\"blocker\"").unwrap();
         assert_eq!(parsed, Severity::Blocker);
     }

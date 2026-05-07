@@ -9,10 +9,10 @@ use runtime::persistence::{Inbox, SessionStore};
 use runtime::sessions::SessionId;
 use tokio_util::sync::CancellationToken;
 
+use super::AppEvent;
 use super::approvals_pane::{ApprovalEvent, Ticket};
 use super::chat_pane::ChatMsg;
 use super::keymap::ApprovalChoice;
-use super::AppEvent;
 
 #[derive(Clone)]
 pub struct RuntimeGlue {
@@ -45,8 +45,7 @@ impl RuntimeGlue {
     ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             let mut notif_rx = self.notifications.subscribe();
-            let mut poll_ticker =
-                tokio::time::interval(std::time::Duration::from_millis(500));
+            let mut poll_ticker = tokio::time::interval(std::time::Duration::from_millis(500));
             let mut known_sessions: HashSet<String> = HashSet::new();
             let mut last_tickets: Vec<String> = Vec::new();
 
@@ -139,7 +138,10 @@ impl RuntimeGlue {
             },
             roles: self.local_roles.clone(),
         };
-        Ok(self.gateway.decide_local(ticket_id, outcome, identity).await?)
+        Ok(self
+            .gateway
+            .decide_local(ticket_id, outcome, identity)
+            .await?)
     }
 }
 
@@ -196,17 +198,14 @@ mod tests {
         };
         notifications.record(n).unwrap();
 
-        let result = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            async {
-                while let Some(event) = rx.recv().await {
-                    if matches!(event, AppEvent::Chat(ChatMsg::Notify { .. })) {
-                        return true;
-                    }
+        let result = tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            while let Some(event) = rx.recv().await {
+                if matches!(event, AppEvent::Chat(ChatMsg::Notify { .. })) {
+                    return true;
                 }
-                false
-            },
-        )
+            }
+            false
+        })
         .await;
 
         cancel.cancel();

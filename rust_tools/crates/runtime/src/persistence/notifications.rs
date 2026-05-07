@@ -15,10 +15,8 @@ pub trait NotificationStore: Send + Sync {
     /// - `n.emitted_by == *sid`
     /// - `n.refs.session_id == Some(*sid)`
     /// - `n.refs.child_session_id == Some(*sid)`
-    fn list_by_session(
-        &self,
-        sid: &SessionId,
-    ) -> Result<Vec<Notification>, NotificationStoreError>;
+    fn list_by_session(&self, sid: &SessionId)
+    -> Result<Vec<Notification>, NotificationStoreError>;
     fn subscribe(&self) -> tokio::sync::broadcast::Receiver<Notification>;
 }
 
@@ -57,10 +55,7 @@ impl NotificationStore for InMemoryNotificationStore {
         Ok(())
     }
 
-    fn list(
-        &self,
-        since: Option<SystemTime>,
-    ) -> Result<Vec<Notification>, NotificationStoreError> {
+    fn list(&self, since: Option<SystemTime>) -> Result<Vec<Notification>, NotificationStoreError> {
         let guard = self.notifications.lock().expect("lock poisoned");
         Ok(match since {
             Some(t) => guard.iter().filter(|n| n.emitted_at > t).cloned().collect(),
@@ -139,11 +134,13 @@ mod tests {
     #[test]
     fn list_with_none_returns_all() {
         let store = InMemoryNotificationStore::new();
+        store.record(mk("a", "s1", SystemTime::UNIX_EPOCH)).unwrap();
         store
-            .record(mk("a", "s1", SystemTime::UNIX_EPOCH))
-            .unwrap();
-        store
-            .record(mk("b", "s1", SystemTime::UNIX_EPOCH + Duration::from_secs(1)))
+            .record(mk(
+                "b",
+                "s1",
+                SystemTime::UNIX_EPOCH + Duration::from_secs(1),
+            ))
             .unwrap();
         assert_eq!(store.list(None).unwrap().len(), 2);
     }

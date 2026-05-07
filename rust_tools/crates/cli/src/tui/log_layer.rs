@@ -1,7 +1,7 @@
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::{Event, Level, Subscriber};
-use tracing_subscriber::layer::Context;
 use tracing_subscriber::Layer;
+use tracing_subscriber::layer::Context;
 
 #[derive(Debug, Clone)]
 pub struct LogLine {

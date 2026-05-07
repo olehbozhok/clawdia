@@ -19,10 +19,8 @@ async fn main() -> anyhow::Result<()> {
         model: cli.model.clone(),
         policy_store: cli.policy_store.clone(),
         authz_backend: cli.authz_backend,
-        approver_hmac_key: std::env::var("APPROVER_HMAC_KEY")
-            .unwrap_or_default(),
-        local_key_id: std::env::var("CLAWDIA_LOCAL_KEY_ID")
-            .unwrap_or_else(|_| "local".to_string()),
+        approver_hmac_key: std::env::var("APPROVER_HMAC_KEY").unwrap_or_default(),
+        local_key_id: std::env::var("CLAWDIA_LOCAL_KEY_ID").unwrap_or_else(|_| "local".to_string()),
         local_roles: std::env::var("CLAWDIA_LOCAL_ROLES")
             .unwrap_or_else(|_| "campaign_owner".to_string()),
         log_dir: std::env::var("CLAWDIA_LOG_DIR")
