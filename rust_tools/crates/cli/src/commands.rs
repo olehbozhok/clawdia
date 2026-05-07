@@ -7,6 +7,7 @@ use rig::providers::deepseek;
 use runtime::agents;
 use runtime::authz_hook::AuthzBackend;
 use runtime::cedar_authz::CedarAuthz;
+use runtime::config::resolve_session_ttl;
 use runtime::policy_prompt;
 use runtime::runtime::build_runtime;
 use runtime::sessions::Principal;
@@ -23,8 +24,7 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
 
     let _appender_guard = tracing_init::init_tracing(log_tx.clone(), &args.log_dir)?;
 
-    let config = agents::load_config(&args.agents_config)
-        .map_err(|e| anyhow::anyhow!("{e}"))?;
+    let config = agents::load_config(&args.agents_config)?;
     let (servers, running_services) = runtime::mcp::connect_all(&args.mcp_config)
         .await
         .map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -69,14 +69,17 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
         &args.local_key_id,
         &args.local_roles,
         backend,
+        &config.runtime,
     )?;
 
+    let session_ttl = resolve_session_ttl(&config.orchestrator, &config.runtime);
+    let deadline = session_ttl.map(|d| std::time::Instant::now() + d);
     let sid = runtime
         .session_store
         .create_root(
             "orchestrator".into(),
             Principal("anon".into()),
-            None,
+            deadline,
         )
         .await?;
 
@@ -88,6 +91,7 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
         &args.model,
         &config.orchestrator,
         &servers,
+        &config,
     )?;
 
     let glue = crate::tui::runtime_glue::RuntimeGlue {
@@ -354,7 +358,7 @@ pub async fn advisor_generate(
     policy_store_id: Option<&str>,
     system_entity_id: &str,
 ) -> anyhow::Result<()> {
-    let agents_cfg = runtime::agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let agents_cfg = runtime::agents::load_config(agents_config)?;
 
     let mut agents = Vec::new();
     for (name, agent) in &agents_cfg.agents {
@@ -403,7 +407,7 @@ fn random_hex_id() -> String {
 }
 
 pub fn agents(agents_config: &Path) -> anyhow::Result<()> {
-    let config = agents::load_config(agents_config).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let config = agents::load_config(agents_config)?;
 
     println!("Orchestrator:");
     if config.orchestrator.permitted_actions.is_empty() {

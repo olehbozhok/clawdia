@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use rig::agent::Agent;
 use rig::client::CompletionClient;
@@ -15,6 +16,7 @@ use crate::authz_hook::{AuthzBackend, AuthzHook};
 use crate::mcp::McpServer;
 use crate::notifications::tool::NotifyHumanTool;
 
+use crate::config::{RuntimeConfig, resolve_max_turns};
 use crate::runtime::Runtime;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -46,9 +48,13 @@ pub struct AgentConfig {
     pub authz_mode: AuthzMode,
     #[serde(default)]
     pub permitted_actions: Vec<String>,
+    #[serde(default)]
+    pub max_turns: Option<u32>,
+    #[serde(default, with = "humantime_serde")]
+    pub session_ttl: Option<Duration>,
 }
 
-pub fn load_config(path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
+pub fn load_config(path: &Path) -> anyhow::Result<crate::config::Config> {
     let content = std::fs::read_to_string(path)?;
     Ok(serde_yaml::from_str(&content)?)
 }
@@ -59,7 +65,7 @@ mod yaml_tests {
     use crate::sub_agent::BUILTIN_AGENT_TOOLS;
     use std::path::PathBuf;
 
-    fn shipped_config() -> super::Config {
+    fn shipped_config() -> crate::config::Config {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config/agents.yaml");
         load_config(&path).expect("agents.yaml must load")
     }
@@ -110,6 +116,7 @@ pub fn filter_tools(tools: Vec<rmcp::model::Tool>, permitted: &[String]) -> Vec<
 
 /// Build an agent with filtered MCP tools and an AuthzHook.
 /// This is the single build path for both orchestrator and sub-agents.
+#[allow(clippy::too_many_arguments)]
 pub fn build_agent<C: CompletionClient + 'static>(
     client: &C,
     model: &str,
@@ -118,6 +125,7 @@ pub fn build_agent<C: CompletionClient + 'static>(
     audit_log: &AuditLog,
     backend: AuthzBackend,
     permission_preamble: &str,
+    runtime_cfg: &RuntimeConfig,
 ) -> Agent<C::CompletionModel, AuthzHook> {
     let principal = Principal {
         id: config.name.clone(),
@@ -145,7 +153,7 @@ pub fn build_agent<C: CompletionClient + 'static>(
         .preamble(&full_preamble)
         .name(&config.name)
         .description(&config.description)
-        .default_max_turns(DEFAULT_MAX_TURNS)
+        .default_max_turns(resolve_max_turns(config, runtime_cfg) as usize)
         .hook(hook);
 
     // Attach filtered MCP tools
@@ -188,6 +196,7 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
     model: &str,
     yaml_cfg: &AgentConfig,
     servers: &[McpServer],
+    cfg: &crate::config::Config,
 ) -> anyhow::Result<AgentRuntime<C::CompletionModel>> {
     let principal = Principal {
         id: yaml_cfg.name.clone(),
@@ -209,14 +218,14 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
         .preamble(&full_preamble)
         .name(&yaml_cfg.name)
         .description(&yaml_cfg.description)
-        .default_max_turns(DEFAULT_MAX_TURNS)
+        .default_max_turns(resolve_max_turns(yaml_cfg, &cfg.runtime) as usize)
         .hook(hook);
 
     // Attach filtered MCP tools
     let mut groups = servers.iter();
-    let first = groups.next().ok_or_else(|| {
-        anyhow::anyhow!("At least one MCP server must be configured")
-    })?;
+    let first = groups
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("At least one MCP server must be configured"))?;
     let permitted = &yaml_cfg.permitted_actions;
     let mut agent_builder = base.rmcp_tools(
         filter_tools(first.tools.clone(), permitted),
@@ -234,6 +243,8 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
         .tool(ApprovalRequestTool {
             gateway: runtime.gateway.clone(),
             caller_session_id: sid.clone(),
+            approvals_config: cfg.approvals.clone(),
+            default_ttl: cfg.runtime.approval_default_ttl,
         })
         .tool(ApprovalStatusTool {
             gateway: runtime.gateway.clone(),
@@ -275,6 +286,7 @@ pub fn build_child_agent<C: CompletionClient + 'static>(
     model: &str,
     yaml_cfg: &AgentConfig,
     servers: &[McpServer],
+    cfg: &crate::config::Config,
 ) -> anyhow::Result<AgentRuntime<C::CompletionModel>> {
     let principal = Principal {
         id: yaml_cfg.name.clone(),
@@ -296,14 +308,14 @@ pub fn build_child_agent<C: CompletionClient + 'static>(
         .preamble(&full_preamble)
         .name(&yaml_cfg.name)
         .description(&yaml_cfg.description)
-        .default_max_turns(DEFAULT_MAX_TURNS)
+        .default_max_turns(resolve_max_turns(yaml_cfg, &cfg.runtime) as usize)
         .hook(hook);
 
     let permitted = &yaml_cfg.permitted_actions;
     let mut groups = servers.iter();
-    let first = groups.next().ok_or_else(|| {
-        anyhow::anyhow!("At least one MCP server must be configured")
-    })?;
+    let first = groups
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("At least one MCP server must be configured"))?;
     let mut agent_builder = base.rmcp_tools(
         filter_tools(first.tools.clone(), permitted),
         first.sink.clone(),
@@ -319,6 +331,8 @@ pub fn build_child_agent<C: CompletionClient + 'static>(
         .tool(ApprovalRequestTool {
             gateway: runtime.gateway.clone(),
             caller_session_id: sid.clone(),
+            approvals_config: cfg.approvals.clone(),
+            default_ttl: cfg.runtime.approval_default_ttl,
         })
         .tool(ApprovalStatusTool {
             gateway: runtime.gateway.clone(),
@@ -524,6 +538,8 @@ mod tests {
             preamble: String::new(),
             authz_mode: AuthzMode::default(),
             permitted_actions: vec!["read_file".into(), "list_directory".into()],
+            max_turns: None,
+            session_ttl: None,
         };
 
         let all_tools = vec![
@@ -545,6 +561,8 @@ mod tests {
             preamble: String::new(),
             authz_mode: AuthzMode::default(),
             permitted_actions: vec!["read_file".into(), "search_files".into()],
+            max_turns: None,
+            session_ttl: None,
         };
 
         let all_tools = vec![
@@ -566,6 +584,8 @@ mod tests {
             preamble: String::new(),
             authz_mode: AuthzMode::default(),
             permitted_actions: vec![],
+            max_turns: None,
+            session_ttl: None,
         };
 
         let all_tools = vec![make_tool("read_file"), make_tool("write_file")];
@@ -581,6 +601,8 @@ mod tests {
             preamble: String::new(),
             authz_mode: AuthzMode::default(),
             permitted_actions: vec!["read_file".into()],
+            max_turns: None,
+            session_ttl: None,
         };
 
         let all_tools = vec![
@@ -595,6 +617,30 @@ mod tests {
     }
 
     // ── authz_mode ──
+
+    #[test]
+    fn agent_config_backward_compat_no_overrides() {
+        let yaml = r#"
+            name: test
+            preamble: "test"
+        "#;
+        let config: AgentConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.max_turns, None);
+        assert_eq!(config.session_ttl, None);
+    }
+
+    #[test]
+    fn agent_config_forward_with_overrides() {
+        let yaml = r#"
+            name: test
+            preamble: "test"
+            max_turns: 30
+            session_ttl: 15m
+        "#;
+        let config: AgentConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.max_turns, Some(30));
+        assert_eq!(config.session_ttl, Some(Duration::from_secs(900)));
+    }
 
     #[test]
     fn authz_mode_defaults_to_cedarling() {

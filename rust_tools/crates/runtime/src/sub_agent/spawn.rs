@@ -1,5 +1,6 @@
 //! Non-blocking sub-agent spawn primitive (design §7).
 
+use crate::config::{RuntimeConfig, SessionDeadline, resolve_child_ttl};
 use crate::inbox::SystemMsg;
 use crate::persistence::{Inbox, SessionStore, TerminalOutcome};
 use crate::sessions::{Principal, SessionId, Wait};
@@ -7,6 +8,7 @@ use crate::sub_agent::outcome::{AbandonReason, SubAgentOutcome};
 use crate::sub_agent::registry::SubAgentRegistry;
 use async_trait::async_trait;
 use std::sync::Arc;
+use std::time::Instant;
 use tokio_util::sync::CancellationToken;
 
 #[async_trait]
@@ -29,6 +31,7 @@ pub struct SpawnCtx {
     pub registry: SubAgentRegistry,
     pub runner: Arc<dyn ChildRunner>,
     pub principal: Principal,
+    pub runtime_config: RuntimeConfig,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -52,9 +55,27 @@ pub async fn spawn(
     if !ctx.sessions.exists(&parent).await? {
         return Err(SpawnError::ParentMissing(parent));
     }
+    let now = Instant::now();
+    let parent_session = ctx
+        .sessions
+        .get(&parent)
+        .await?
+        .ok_or(SpawnError::ParentMissing(parent.clone()))?;
+    let child_deadline = resolve_child_ttl(
+        now,
+        SessionDeadline {
+            deadline: parent_session.deadline,
+        },
+        &ctx.runtime_config,
+    );
     let child = ctx
         .sessions
-        .create_child(&parent, label.clone(), ctx.principal.clone(), None)
+        .create_child(
+            &parent,
+            label.clone(),
+            ctx.principal.clone(),
+            Some(child_deadline),
+        )
         .await?;
     ctx.sessions
         .add_wait(&parent, Wait::SubAgent(child.clone()))
@@ -145,6 +166,7 @@ pub(crate) mod test_support {
             registry: SubAgentRegistry::new(),
             runner,
             principal: Principal("anon".into()),
+            runtime_config: RuntimeConfig::default(),
         }
     }
 

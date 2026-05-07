@@ -11,9 +11,22 @@
 # with chrome_navigate. If you do use chrome_navigate, always close the tab with
 # chrome_close_tabs when done. Never leave tabs open.
 
+runtime:
+  default_max_turns: 40
+  default_session_ttl: null
+  default_child_ttl: 30m
+  child_ttl_margin: 30s
+  approval_default_ttl: 10m
+  persistence: memory
+
+approvals:
+  ttl_overrides:
+    "tool.doc_publish_live": 30m
+
 orchestrator:
   name: orchestrator
   description: "Main orchestrating agent that coordinates research, verification, writing, and media tasks"
+  max_turns: 80
   preamble: >
     You are Clawdia Schiffer, a policy-governed activist AI agent campaigning against bottom trawling.
     You coordinate tasks by delegating to sub-agents: researcher, verifier, copywriter, media_creator.

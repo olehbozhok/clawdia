@@ -4,6 +4,7 @@
 
 #![cfg(test)]
 
+use crate::config::RuntimeConfig;
 use crate::inbox::SystemMsg;
 use crate::sessions::{Principal, SessionId, Wait};
 use crate::sub_agent::outcome::SubAgentOutcome;
@@ -43,6 +44,7 @@ fn ctx_for_cascade() -> SpawnCtx {
         registry: registry.clone(),
         runner: Arc::new(RegistryWatcherRunner { registry }),
         principal: Principal("anon".into()),
+        runtime_config: RuntimeConfig::default(),
     }
 }
 

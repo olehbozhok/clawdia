@@ -2,6 +2,7 @@ use crate::agents::AuditLog;
 use crate::approvals::gateway::ApprovalGateway;
 use crate::approvals::registry::{ActionRegistry, InMemoryActionRegistry};
 use crate::authz_hook::AuthzBackend;
+use crate::config::RuntimeConfig;
 use crate::notifications::types::NotificationIdGenerator;
 use crate::persistence::memory::{InMemoryInbox, InMemorySessionStore};
 use crate::persistence::notifications::{InMemoryNotificationStore, NotificationStore};
@@ -54,6 +55,7 @@ pub fn build_runtime(
     local_key_id: &str,
     local_roles: &str,
     authz_backend: AuthzBackend,
+    runtime_cfg: &RuntimeConfig,
 ) -> anyhow::Result<(Runtime, CancellationToken, JoinSet<()>)> {
     let cancel = CancellationToken::new();
     let set = JoinSet::new();
@@ -66,7 +68,10 @@ pub fn build_runtime(
 
     let hmac_key = approver_hmac_key.as_bytes().to_vec();
     let local_key_id = local_key_id.to_string();
-    let local_roles: Vec<String> = local_roles.split(',').map(|s| s.trim().to_string()).collect();
+    let local_roles: Vec<String> = local_roles
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .collect();
 
     let gateway = Arc::new(ApprovalGateway::new(
         ticket_store.clone(),
@@ -83,6 +88,7 @@ pub fn build_runtime(
         registry: SubAgentRegistry::new(),
         runner: Arc::new(StubChildRunner),
         principal: Principal("anon".into()),
+        runtime_config: runtime_cfg.clone(),
     });
 
     let audit_log = Arc::new(AuditLog::new());

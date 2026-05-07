@@ -23,6 +23,7 @@
 use crate::approvals::gateway::{ApprovalGateway, GatewayError};
 use crate::approvals::registry::{ActionRegistry, ActionRegistryError};
 use crate::approvals::types::{ApprovalRequest, TicketId, TicketStatus};
+use crate::config::{ApprovalsConfig, resolve_approval_ttl};
 use crate::sessions::SessionId;
 use rig::completion::ToolDefinition;
 use rig::tool::Tool;
@@ -53,8 +54,6 @@ fn status_str(s: TicketStatus) -> &'static str {
     }
 }
 
-const DEFAULT_TTL_SECS: u64 = 600;
-
 // ── approval_request ──
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -79,6 +78,8 @@ pub struct ApprovalRequestResult {
 pub struct ApprovalRequestTool {
     pub gateway: Arc<ApprovalGateway>,
     pub caller_session_id: SessionId,
+    pub approvals_config: ApprovalsConfig,
+    pub default_ttl: Option<Duration>,
 }
 
 impl Tool for ApprovalRequestTool {
@@ -101,7 +102,12 @@ impl Tool for ApprovalRequestTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        let ttl = Duration::from_secs(args.ttl_seconds.unwrap_or(DEFAULT_TTL_SECS));
+        let ttl = match args.ttl_seconds {
+            Some(secs) => Duration::from_secs(secs),
+            None => {
+                resolve_approval_ttl(&args.action_kind, &self.approvals_config, self.default_ttl)
+            }
+        };
         let ticket = self
             .gateway
             .request(ApprovalRequest {
@@ -217,10 +223,7 @@ impl Tool for ApprovalDescribeTool {
             .get(&id)
             .map_err(GatewayError::Store)?
             .ok_or(ApprovalToolError::NotFound)?;
-        let denial_reason = ticket
-            .decision
-            .as_ref()
-            .and_then(|d| d.reason.clone());
+        let denial_reason = ticket.decision.as_ref().and_then(|d| d.reason.clone());
         Ok(ApprovalDescribeResult {
             ticket_id: ticket.id.0,
             session_id: ticket.session_id.into_string(),
@@ -359,12 +362,12 @@ mod tests {
     use super::*;
     use crate::approvals::outcome::{ApprovalOutcome, ApproverIdentity, ApproverKind};
     use crate::approvals::registry::{ActionHandler, InMemoryActionRegistry};
-    use async_trait::async_trait;
     use crate::persistence::Inbox;
     use crate::persistence::SessionStore;
     use crate::persistence::memory::{InMemoryInbox, InMemorySessionStore};
     use crate::persistence::tickets::{InMemoryTicketStore, TicketStore};
     use crate::sessions::Principal;
+    use async_trait::async_trait;
     use serde_json::json;
 
     fn approver() -> ApproverIdentity {
@@ -403,6 +406,8 @@ mod tests {
         let tool = ApprovalRequestTool {
             gateway: gw,
             caller_session_id: sid,
+            approvals_config: ApprovalsConfig::default(),
+            default_ttl: None,
         };
         let res = tool
             .call(ApprovalRequestArgs {
@@ -424,6 +429,8 @@ mod tests {
         let tool = ApprovalRequestTool {
             gateway: gw,
             caller_session_id: sid,
+            approvals_config: ApprovalsConfig::default(),
+            default_ttl: None,
         };
         let err = tool
             .call(ApprovalRequestArgs {
@@ -444,6 +451,8 @@ mod tests {
         let req = ApprovalRequestTool {
             gateway: gw.clone(),
             caller_session_id: sid.clone(),
+            approvals_config: ApprovalsConfig::default(),
+            default_ttl: None,
         };
         let res = req
             .call(ApprovalRequestArgs {
@@ -488,6 +497,8 @@ mod tests {
         let req = ApprovalRequestTool {
             gateway: gw.clone(),
             caller_session_id: sid.clone(),
+            approvals_config: ApprovalsConfig::default(),
+            default_ttl: None,
         };
         let res = req
             .call(ApprovalRequestArgs {
@@ -536,6 +547,8 @@ mod tests {
         let req = ApprovalRequestTool {
             gateway: gw.clone(),
             caller_session_id: sid.clone(),
+            approvals_config: ApprovalsConfig::default(),
+            default_ttl: None,
         };
         let res = req
             .call(ApprovalRequestArgs {
@@ -691,6 +704,8 @@ mod tests {
         ApprovalRequestTool {
             gateway: gw.clone(),
             caller_session_id: sid.clone(),
+            approvals_config: ApprovalsConfig::default(),
+            default_ttl: None,
         }
         .call(ApprovalRequestArgs {
             action_kind: "a1".into(),
@@ -704,6 +719,8 @@ mod tests {
         ApprovalRequestTool {
             gateway: gw.clone(),
             caller_session_id: other,
+            approvals_config: ApprovalsConfig::default(),
+            default_ttl: None,
         }
         .call(ApprovalRequestArgs {
             action_kind: "a2".into(),

@@ -7,9 +7,8 @@ use crate::approvals::canonical::canonical_hash;
 use crate::approvals::correlation::correlation_key;
 use crate::approvals::outcome::{ApprovalOutcome, ApproverIdentity};
 use crate::approvals::signing::{SignError, sign, verify};
-use crate::approvals::types::{
-    ApprovalRequest, Decision, Ticket, TicketId, TicketStatus,
-};
+use crate::approvals::types::{ApprovalRequest, Decision, Ticket, TicketId, TicketStatus};
+use crate::config::cap_ticket_expiry;
 use crate::inbox::SystemMsg;
 use crate::persistence::tickets::{TicketStore, TicketStoreError};
 use crate::persistence::{Inbox, SessionStore};
@@ -107,6 +106,12 @@ impl ApprovalGateway {
         }
         let now = (self.clock)();
         let args_hash = canonical_hash(&req.args)?;
+        let session_deadline = self
+            .sessions
+            .get(&req.requester)
+            .await?
+            .and_then(|s| s.deadline);
+        let expires_at = cap_ticket_expiry(now, req.ttl, session_deadline);
         let ticket = Ticket {
             id: (self.id_gen)(),
             session_id: req.requester,
@@ -118,7 +123,7 @@ impl ApprovalGateway {
             status: TicketStatus::Pending,
             decision: None,
             created_at: now,
-            expires_at: now + req.ttl,
+            expires_at,
             decided_at: None,
             consumed_at: None,
         };
@@ -250,8 +255,8 @@ mod tests {
     use crate::persistence::tickets::InMemoryTicketStore;
     use crate::sessions::Principal;
     use serde_json::json;
-    use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::Mutex;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::Duration;
 
     fn approver() -> ApproverIdentity {
@@ -330,11 +335,10 @@ mod tests {
     async fn request_idempotent_via_correlation() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t1 = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
-            .await
-            .unwrap();
+        let t1 =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
         let t2 = h.gw.request(req(sid, json!({"x": 1}))).await.unwrap();
         assert_eq!(t1.id, t2.id);
     }
@@ -343,13 +347,11 @@ mod tests {
     async fn decide_records_decision_and_emits_inbox() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
-            .await
-            .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
+        let t =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
         let stored = h.tickets.get(&t.id).unwrap().unwrap();
@@ -364,17 +366,15 @@ mod tests {
     async fn decide_resolves_session_wait_approval() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
-            .await
-            .unwrap();
+        let t =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
         h.sessions
             .add_wait(&sid, Wait::Approval(t.id.clone()))
             .await
             .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
         let waits = h.sessions.waits(&sid).await.unwrap();
@@ -385,20 +385,14 @@ mod tests {
     async fn decide_on_non_pending_returns_already_decided() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid, json!({"x": 1})))
+        let t = h.gw.request(req(sid, json!({"x": 1}))).await.unwrap();
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
-            .await
-            .unwrap();
-        let err = h
-            .gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
-            .await
-            .unwrap_err();
+        let err =
+            h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
+                .await
+                .unwrap_err();
         assert!(matches!(
             err,
             GatewayError::AlreadyDecided {
@@ -411,12 +405,14 @@ mod tests {
     async fn gate_call_rejects_when_pending() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
-            .await
-            .unwrap();
-        let err = h.gw.gate_call(&t.id, &sid, &json!({"x": 1})).await.unwrap_err();
+        let t =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
+        let err =
+            h.gw.gate_call(&t.id, &sid, &json!({"x": 1}))
+                .await
+                .unwrap_err();
         assert!(matches!(err, GatewayError::NotApproved));
     }
 
@@ -424,16 +420,17 @@ mod tests {
     async fn gate_call_rejects_when_args_drift() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
+        let t =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
-            .await
-            .unwrap();
-        let err = h.gw.gate_call(&t.id, &sid, &json!({"x": 2})).await.unwrap_err();
+        let err =
+            h.gw.gate_call(&t.id, &sid, &json!({"x": 2}))
+                .await
+                .unwrap_err();
         assert!(matches!(err, GatewayError::ArgsDrift));
     }
 
@@ -441,18 +438,19 @@ mod tests {
     async fn gate_call_rejects_when_expired() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
-            .await
-            .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
+        let t =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
         // Advance virtual clock past expires_at.
         *h.clock.lock().unwrap() = Instant::now() + Duration::from_secs(3600);
-        let err = h.gw.gate_call(&t.id, &sid, &json!({"x": 1})).await.unwrap_err();
+        let err =
+            h.gw.gate_call(&t.id, &sid, &json!({"x": 1}))
+                .await
+                .unwrap_err();
         assert!(matches!(err, GatewayError::Expired));
     }
 
@@ -461,20 +459,14 @@ mod tests {
         let h = harness();
         let sid = make_session(&h).await;
         let other = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid, json!({"x": 1})))
+        let t = h.gw.request(req(sid, json!({"x": 1}))).await.unwrap();
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
-            .await
-            .unwrap();
-        let err = h
-            .gw
-            .gate_call(&t.id, &other, &json!({"x": 1}))
-            .await
-            .unwrap_err();
+        let err =
+            h.gw.gate_call(&t.id, &other, &json!({"x": 1}))
+                .await
+                .unwrap_err();
         assert!(matches!(err, GatewayError::SessionMismatch));
     }
 
@@ -482,13 +474,11 @@ mod tests {
     async fn gate_call_rejects_when_signature_invalid() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
-            .await
-            .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
+        let t =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
         // Tamper signature in the store.
@@ -497,11 +487,10 @@ mod tests {
         bad.signature[0] ^= 0xFF;
         stored.decision = Some(bad.clone());
         h.tickets.record_decision(&t.id, bad).unwrap();
-        let err = h
-            .gw
-            .gate_call(&t.id, &sid, &json!({"x": 1}))
-            .await
-            .unwrap_err();
+        let err =
+            h.gw.gate_call(&t.id, &sid, &json!({"x": 1}))
+                .await
+                .unwrap_err();
         assert!(matches!(err, GatewayError::BadSignature));
     }
 
@@ -509,21 +498,18 @@ mod tests {
     async fn gate_call_consumes_atomically() {
         let h = harness();
         let sid = make_session(&h).await;
-        let t = h
-            .gw
-            .request(req(sid.clone(), json!({"x": 1})))
-            .await
-            .unwrap();
-        h.gw
-            .decide_local(&t.id, ApprovalOutcome::Approved, approver())
+        let t =
+            h.gw.request(req(sid.clone(), json!({"x": 1})))
+                .await
+                .unwrap();
+        h.gw.decide_local(&t.id, ApprovalOutcome::Approved, approver())
             .await
             .unwrap();
         h.gw.gate_call(&t.id, &sid, &json!({"x": 1})).await.unwrap();
-        let err = h
-            .gw
-            .gate_call(&t.id, &sid, &json!({"x": 1}))
-            .await
-            .unwrap_err();
+        let err =
+            h.gw.gate_call(&t.id, &sid, &json!({"x": 1}))
+                .await
+                .unwrap_err();
         assert!(matches!(err, GatewayError::Consumed));
     }
 }
