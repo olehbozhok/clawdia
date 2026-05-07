@@ -1,6 +1,7 @@
 use crate::agents::AuditLog;
 use crate::approvals::gateway::ApprovalGateway;
 use crate::approvals::registry::{ActionRegistry, InMemoryActionRegistry};
+use crate::authz_hook::AuthzBackend;
 use crate::notifications::types::NotificationIdGenerator;
 use crate::persistence::memory::{InMemoryInbox, InMemorySessionStore};
 use crate::persistence::notifications::{InMemoryNotificationStore, NotificationStore};
@@ -28,6 +29,7 @@ pub struct Runtime {
     pub hmac_key: Vec<u8>,
     pub local_key_id: String,
     pub local_roles: Vec<String>,
+    pub authz_backend: AuthzBackend,
 }
 
 struct StubChildRunner;
@@ -51,6 +53,7 @@ pub fn build_runtime(
     approver_hmac_key: &str,
     local_key_id: &str,
     local_roles: &str,
+    authz_backend: AuthzBackend,
 ) -> (Runtime, CancellationToken, JoinSet<()>) {
     let cancel = CancellationToken::new();
     let set = JoinSet::new();
@@ -98,6 +101,7 @@ pub fn build_runtime(
             hmac_key,
             local_key_id,
             local_roles,
+            authz_backend,
         },
         cancel,
         set,

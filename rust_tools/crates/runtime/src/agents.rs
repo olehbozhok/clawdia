@@ -7,9 +7,15 @@ use rig::client::CompletionClient;
 use rig::completion::{CompletionModel, Prompt, PromptError, ToolDefinition};
 use rig::tool::Tool;
 
+use crate::approvals::tools::{
+    ApprovalDescribeTool, ApprovalExecuteTool, ApprovalListMineTool, ApprovalRequestTool,
+    ApprovalStatusTool,
+};
 use crate::authz_hook::{AuthzBackend, AuthzHook};
 use crate::mcp::McpServer;
-use crate::policy_prompt;
+use crate::notifications::tool::NotifyHumanTool;
+
+use crate::runtime::Runtime;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tools::authz::{AuditEntry, Principal};
@@ -88,7 +94,7 @@ mod yaml_tests {
     }
 }
 
-const DEFAULT_MAX_TURNS: usize = 40;
+pub const DEFAULT_MAX_TURNS: usize = 40;
 
 // ── Tool filtering ──
 
@@ -163,73 +169,59 @@ pub fn build_agent<C: CompletionClient + 'static>(
     }
 }
 
-/// Build the orchestrator: same as any agent, plus all sub-agents attached as tools.
-/// Sub-agents are always available to the orchestrator (no permission needed).
+// ── AgentRuntime + runtime-backed builders (Plan 06) ──
+
+/// Lightweight per-agent handle. Each running agent gets its own `AgentRuntime`
+/// with its `SessionId` captured in every attached builtin tool.
+pub struct AgentRuntime<M: CompletionModel> {
+    pub agent: Agent<M, AuthzHook>,
+    pub session_id: crate::sessions::SessionId,
+    pub audit: Arc<AuditLog>,
+}
+
+/// Build the orchestrator agent with runtime-builtin tools.
+/// Attaches approval_* + notify_human tools. `agent_spawn` deferred to Plan 07.
 pub fn build_orchestrator<C: CompletionClient + 'static>(
+    runtime: &Runtime,
+    sid: crate::sessions::SessionId,
     client: &C,
     model: &str,
-    config: &Config,
-    servers: Vec<McpServer>,
-    audit_log: &AuditLog,
-    backend: AuthzBackend,
-    agent_permissions: &HashMap<String, Vec<policy_prompt::PermissionEntry>>,
-) -> Agent<C::CompletionModel, AuthzHook> {
+    yaml_cfg: &AgentConfig,
+    servers: &[McpServer],
+) -> anyhow::Result<AgentRuntime<C::CompletionModel>> {
     let principal = Principal {
-        id: config.orchestrator.name.clone(),
-        principal_type: config.orchestrator.name.clone(),
+        id: yaml_cfg.name.clone(),
+        principal_type: yaml_cfg.name.clone(),
         delegation_record_id: None,
     };
 
-    // Collect sub-agent tool names so the AuthzHook can allow them
-    let sub_agent_tools: Vec<String> = config
-        .agents
-        .values()
-        .map(|cfg| format!("agent_{}", cfg.name))
-        .collect();
-
     let hook = AuthzHook::new(
         principal,
-        config.orchestrator.permitted_actions.clone(),
-        audit_log.clone(),
-        backend.clone(),
-    )
-    .with_sub_agent_tools(sub_agent_tools);
+        yaml_cfg.permitted_actions.clone(),
+        (*runtime.audit_log).clone(),
+        runtime.authz_backend.clone(),
+    );
 
-    let permitted = &config.orchestrator.permitted_actions;
-
-    let orchestrator_preamble = agent_permissions
-        .get("orchestrator")
-        .map(|entries| policy_prompt::build_permissions_prompt(entries))
-        .unwrap_or_default();
-
-    let full_preamble = if orchestrator_preamble.is_empty() {
-        config.orchestrator.preamble.clone()
-    } else {
-        format!(
-            "{}\n{}",
-            config.orchestrator.preamble, orchestrator_preamble
-        )
-    };
+    let full_preamble = yaml_cfg.preamble.clone();
 
     let base = client
         .agent(model)
         .preamble(&full_preamble)
-        .name(&config.orchestrator.name)
-        .description(&config.orchestrator.description)
+        .name(&yaml_cfg.name)
+        .description(&yaml_cfg.description)
         .default_max_turns(DEFAULT_MAX_TURNS)
         .hook(hook);
 
     // Attach filtered MCP tools
     let mut groups = servers.iter();
-    let first = groups
-        .next()
-        .expect("At least one MCP server must be configured");
-
+    let first = groups.next().ok_or_else(|| {
+        anyhow::anyhow!("At least one MCP server must be configured")
+    })?;
+    let permitted = &yaml_cfg.permitted_actions;
     let mut agent_builder = base.rmcp_tools(
         filter_tools(first.tools.clone(), permitted),
         first.sink.clone(),
     );
-
     for server in groups {
         agent_builder = agent_builder.rmcp_tools(
             filter_tools(server.tools.clone(), permitted),
@@ -237,30 +229,121 @@ pub fn build_orchestrator<C: CompletionClient + 'static>(
         );
     }
 
-    // All sub-agents are always available to the orchestrator
-    for agent_cfg in config.agents.values() {
-        let sub_preamble = agent_permissions
-            .get(&agent_cfg.name)
-            .map(|entries| policy_prompt::build_permissions_prompt(entries))
-            .unwrap_or_default();
+    // Attach builtin runtime tools
+    let agent = agent_builder
+        .tool(ApprovalRequestTool {
+            gateway: runtime.gateway.clone(),
+            caller_session_id: sid.clone(),
+        })
+        .tool(ApprovalStatusTool {
+            gateway: runtime.gateway.clone(),
+        })
+        .tool(ApprovalDescribeTool {
+            gateway: runtime.gateway.clone(),
+        })
+        .tool(ApprovalExecuteTool {
+            gateway: runtime.gateway.clone(),
+            registry: runtime.action_registry.clone(),
+            caller_session_id: sid.clone(),
+        })
+        .tool(ApprovalListMineTool {
+            gateway: runtime.gateway.clone(),
+            caller_session_id: sid.clone(),
+        })
+        .tool(NotifyHumanTool {
+            store: runtime.notification_store.clone(),
+            idgen: runtime.notification_idgen.clone(),
+            caller_session_id: sid.clone(),
+        })
+        // AgentSpawnTool — DEFERRED to Plan 07 (needs production ChildRunner)
+        .build();
 
-        let inner = build_agent(
-            client,
-            model,
-            agent_cfg,
-            &servers,
-            audit_log,
-            backend.clone(),
-            &sub_preamble,
+    Ok(AgentRuntime {
+        agent,
+        session_id: sid,
+        audit: runtime.audit_log.clone(),
+    })
+}
+
+/// Build a child agent with runtime-builtin tools.
+/// Same as `build_orchestrator` but WITHOUT `NotifyHumanTool` (orchestrator-only
+/// per Cedar policy). `agent_spawn` deferred to Plan 07.
+pub fn build_child_agent<C: CompletionClient + 'static>(
+    runtime: &Runtime,
+    sid: crate::sessions::SessionId,
+    client: &C,
+    model: &str,
+    yaml_cfg: &AgentConfig,
+    servers: &[McpServer],
+) -> anyhow::Result<AgentRuntime<C::CompletionModel>> {
+    let principal = Principal {
+        id: yaml_cfg.name.clone(),
+        principal_type: yaml_cfg.name.clone(),
+        delegation_record_id: None,
+    };
+
+    let hook = AuthzHook::new(
+        principal,
+        yaml_cfg.permitted_actions.clone(),
+        (*runtime.audit_log).clone(),
+        runtime.authz_backend.clone(),
+    );
+
+    let full_preamble = yaml_cfg.preamble.clone();
+
+    let base = client
+        .agent(model)
+        .preamble(&full_preamble)
+        .name(&yaml_cfg.name)
+        .description(&yaml_cfg.description)
+        .default_max_turns(DEFAULT_MAX_TURNS)
+        .hook(hook);
+
+    let permitted = &yaml_cfg.permitted_actions;
+    let mut groups = servers.iter();
+    let first = groups.next().ok_or_else(|| {
+        anyhow::anyhow!("At least one MCP server must be configured")
+    })?;
+    let mut agent_builder = base.rmcp_tools(
+        filter_tools(first.tools.clone(), permitted),
+        first.sink.clone(),
+    );
+    for server in groups {
+        agent_builder = agent_builder.rmcp_tools(
+            filter_tools(server.tools.clone(), permitted),
+            server.sink.clone(),
         );
-        let sub_agent = VerboseAgent {
-            label: agent_cfg.name.clone(),
-            inner,
-        };
-        agent_builder = agent_builder.tool(sub_agent);
     }
 
-    agent_builder.build()
+    let agent = agent_builder
+        .tool(ApprovalRequestTool {
+            gateway: runtime.gateway.clone(),
+            caller_session_id: sid.clone(),
+        })
+        .tool(ApprovalStatusTool {
+            gateway: runtime.gateway.clone(),
+        })
+        .tool(ApprovalDescribeTool {
+            gateway: runtime.gateway.clone(),
+        })
+        .tool(ApprovalExecuteTool {
+            gateway: runtime.gateway.clone(),
+            registry: runtime.action_registry.clone(),
+            caller_session_id: sid.clone(),
+        })
+        .tool(ApprovalListMineTool {
+            gateway: runtime.gateway.clone(),
+            caller_session_id: sid.clone(),
+        })
+        // NotifyHumanTool deliberately omitted — orchestrator-only per Cedar policy.
+        // AgentSpawnTool — DEFERRED to Plan 07 (needs production ChildRunner)
+        .build();
+
+    Ok(AgentRuntime {
+        agent,
+        session_id: sid,
+        audit: runtime.audit_log.clone(),
+    })
 }
 
 // ── Audit log (shared across agents) ──
