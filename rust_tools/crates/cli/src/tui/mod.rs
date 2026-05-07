@@ -90,6 +90,11 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tui::approvals_pane::{ApprovalEvent, Ticket};
+    use crate::tui::chat_pane::ChatMsg;
+    use runtime::notifications::types::Severity;
+    use runtime::sessions::SessionId;
+    use std::time::Duration;
 
     #[test]
     fn focus_next_cycles_three_panes() {
@@ -129,5 +134,50 @@ mod tests {
         };
         app.reduce(AppEvent::Log(line));
         assert_eq!(app.log.lines.len(), 1);
+    }
+
+    fn ticket(id: &str, ttl: Duration) -> Ticket {
+        Ticket {
+            id: id.into(),
+            session_id: SessionId::from_string("s_test1".to_string()).unwrap(),
+            action_kind: "tool.doc_publish_live".into(),
+            args: serde_json::json!({"draft_id": "d1"}),
+            reason: "publish manifest".into(),
+            hint: None,
+            expires_at: Instant::now() + ttl,
+        }
+    }
+
+    #[test]
+    fn spawn_notify_approve_consume_flow() {
+        let mut app = App::new();
+        app.reduce(AppEvent::Chat(ChatMsg::SubAgentSpawn {
+            label: "researcher".into(),
+            child: "sid_42".into(),
+        }));
+        assert_eq!(app.chat.history.len(), 1);
+
+        app.reduce(AppEvent::Chat(ChatMsg::Notify {
+            severity: Severity::Warn,
+            subject: "source flaky".into(),
+            body: "retrying".into(),
+        }));
+        assert_eq!(app.chat.history.len(), 2);
+
+        let t = ticket("tk_1", Duration::from_secs(60));
+        app.reduce(AppEvent::Approval(ApprovalEvent::SetPending(vec![
+            t.clone(),
+        ])));
+        assert_eq!(app.approvals.selected_id(), Some("tk_1"));
+
+        app.reduce(AppEvent::Approval(ApprovalEvent::SetPending(vec![])));
+        assert_eq!(app.approvals.selected_id(), None);
+
+        app.reduce(AppEvent::Chat(ChatMsg::SubAgentFinish {
+            label: "researcher".into(),
+            child: "sid_42".into(),
+            outcome: "Done".into(),
+        }));
+        assert_eq!(app.chat.history.len(), 3);
     }
 }

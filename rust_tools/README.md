@@ -37,10 +37,24 @@ cp .env.example .env
 
 ## Usage
 
-```bash
-# Interactive chat with the orchestrator
-cargo run -- chat
+### TUI (interactive chat)
 
+Three-pane terminal UI with ratatui:
+
+- **Chat** — agent transcript, user input, notifications
+- **Approvals** — pending approval tickets with approve/deny/skip
+- **Log** — runtime tracing events with severity colors
+
+Keybindings: `Tab` to cycle panes, `j`/`k` to navigate lists, `a`/`d`/`s` to approve/deny/skip in Approvals pane.
+
+```bash
+# Interactive chat with the orchestrator (TUI)
+cargo run -- chat
+```
+
+### CLI commands
+
+```bash
 # List MCP tools (human-readable)
 cargo run -- tools
 
