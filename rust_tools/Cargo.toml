@@ -32,3 +32,4 @@ http = "1.4"
 reqwest = "0.13"
 cedar-policy = "4"
 tempfile = "3"
+tokio-util = { version = "0.7", features = ["rt"] }

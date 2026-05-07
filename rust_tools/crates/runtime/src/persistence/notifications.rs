@@ -19,6 +19,7 @@ pub trait NotificationStore: Send + Sync {
         &self,
         sid: &SessionId,
     ) -> Result<Vec<Notification>, NotificationStoreError>;
+    fn subscribe(&self) -> tokio::sync::broadcast::Receiver<Notification>;
 }
 
 #[derive(Debug, Error)]
@@ -27,14 +28,18 @@ pub enum NotificationStoreError {
     Duplicate(String),
 }
 
-#[derive(Default)]
 pub struct InMemoryNotificationStore {
     notifications: Mutex<Vec<Notification>>,
+    tx: tokio::sync::broadcast::Sender<Notification>,
 }
 
 impl InMemoryNotificationStore {
     pub fn new() -> Arc<Self> {
-        Arc::new(Self::default())
+        let (tx, _) = tokio::sync::broadcast::channel(256);
+        Arc::new(Self {
+            notifications: Mutex::new(Vec::new()),
+            tx,
+        })
     }
 }
 
@@ -44,7 +49,11 @@ impl NotificationStore for InMemoryNotificationStore {
         if guard.iter().any(|existing| existing.id == n.id) {
             return Err(NotificationStoreError::Duplicate(n.id.0.clone()));
         }
-        guard.push(n);
+        guard.push(n.clone());
+        drop(guard);
+        if self.tx.send(n).is_err() {
+            tracing::warn!("notification broadcast channel has no active receivers");
+        }
         Ok(())
     }
 
@@ -73,6 +82,10 @@ impl NotificationStore for InMemoryNotificationStore {
             })
             .cloned()
             .collect())
+    }
+
+    fn subscribe(&self) -> tokio::sync::broadcast::Receiver<Notification> {
+        self.tx.subscribe()
     }
 }
 
@@ -169,6 +182,18 @@ mod tests {
         let result = store.list_by_session(&s1).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id.0, "a");
+    }
+
+    #[tokio::test]
+    async fn subscribe_receives_recorded_notification() {
+        let store = InMemoryNotificationStore::new();
+        let mut rx = store.subscribe();
+        let t = SystemTime::UNIX_EPOCH;
+        let n = mk("sub1", "s1", t);
+        store.record(n.clone()).unwrap();
+        let received = rx.recv().await.expect("should receive notification");
+        assert_eq!(received.id, n.id);
+        assert_eq!(received.emitted_by, n.emitted_by);
     }
 
     #[test]

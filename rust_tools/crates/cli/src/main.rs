@@ -1,8 +1,10 @@
 mod cli_args;
 mod commands;
+mod tui;
 
 use clap::Parser;
-use cli_args::{Cli, Command};
+use cli_args::{ChatArgs, Cli, Command};
+use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -10,21 +12,21 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let level: tracing_subscriber::filter::LevelFilter = cli.log_level.into();
-    tracing_subscriber::fmt().with_max_level(level).init();
+    let chat_args = ChatArgs {
+        mcp_config: cli.mcp_config.clone(),
+        agents_config: cli.agents_config.clone(),
+        api_key: cli.api_key.clone(),
+        model: cli.model.clone(),
+        policy_store: cli.policy_store.clone(),
+        authz_backend: cli.authz_backend,
+        approver_hmac_key: String::new(),
+        local_key_id: "local".to_string(),
+        local_roles: "campaign_owner".to_string(),
+        log_dir: PathBuf::from("./logs"),
+    };
 
     match cli.command {
-        Command::Chat => {
-            commands::chat(
-                &cli.mcp_config,
-                &cli.agents_config,
-                &cli.api_key,
-                &cli.model,
-                &cli.policy_store,
-                cli.authz_backend,
-            )
-            .await
-        }
+        Command::Chat => commands::chat(&chat_args).await,
         Command::Tools { json } => commands::tools(&cli.mcp_config, json).await,
         Command::Agents => commands::agents(&cli.agents_config),
         Command::AdvisorGenerate {

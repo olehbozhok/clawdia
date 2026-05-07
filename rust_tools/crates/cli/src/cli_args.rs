@@ -107,6 +107,50 @@ pub enum Command {
     },
 }
 
+/// Per-invocation arguments for the chat subcommand.
+#[derive(Debug, Parser)]
+pub struct ChatArgs {
+    /// Path to MCP servers config
+    #[arg(long, env = "MCP_CONFIG", default_value = "config/mcp_servers.yaml")]
+    pub mcp_config: PathBuf,
+
+    /// Path to agents config
+    #[arg(long, env = "AGENTS_CONFIG", default_value = "config/agents.yaml")]
+    pub agents_config: PathBuf,
+
+    /// DeepSeek API key
+    #[arg(long, env = "DEEPSEEK_API_KEY", hide_env_values = true)]
+    pub api_key: String,
+
+    /// DeepSeek model name
+    #[arg(long, env = "DEEPSEEK_MODEL", default_value = "deepseek-chat")]
+    pub model: String,
+
+    /// Path to Cedar policy store directory
+    #[arg(long, env = "CLAWDIA_POLICY_STORE_PATH", default_value = "config/policies")]
+    pub policy_store: PathBuf,
+
+    /// Authorization backend
+    #[arg(long, env = "CLAWDIA_AUTHZ_BACKEND", value_enum, default_value = "cedarling")]
+    pub authz_backend: AuthzBackendChoice,
+
+    /// HMAC key for local approval signing (required). Env: APPROVER_HMAC_KEY.
+    #[arg(long, env = "APPROVER_HMAC_KEY", hide_env_values = true)]
+    pub approver_hmac_key: String,
+
+    /// Local key identifier (optional, defaults to "local")
+    #[arg(long, env = "CLAWDIA_LOCAL_KEY_ID", default_value = "local")]
+    pub local_key_id: String,
+
+    /// Local roles for the approver identity (comma-separated)
+    #[arg(long, env = "CLAWDIA_LOCAL_ROLES", default_value = "campaign_owner")]
+    pub local_roles: String,
+
+    /// Log directory for tracing-appender
+    #[arg(long, env = "CLAWDIA_LOG_DIR", default_value = "./logs")]
+    pub log_dir: PathBuf,
+}
+
 #[cfg(test)]
 mod tests {
     use clap::Parser;
