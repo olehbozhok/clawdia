@@ -95,7 +95,6 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
         sessions: runtime.session_store.clone(),
         inbox: runtime.inbox.clone(),
         notifications: runtime.notification_store.clone(),
-        hmac_key: Arc::new(runtime.hmac_key.clone()),
         local_key_id: runtime.local_key_id.clone(),
         local_roles: runtime.local_roles.clone(),
         root_session: sid,
@@ -157,11 +156,14 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
                                         let choice = crate::tui::keymap::ApprovalChoice::Deny { reason };
                                         let _ = glue.approve(&tid, choice).await;
                                     }
-                                    app.approvals.deny_modal_open = false;
+                                    app.reduce(AppEvent::Approval(
+                                        crate::tui::approvals_pane::ApprovalEvent::DenyModalClosed,
+                                    ));
                                 }
                                 crossterm::event::KeyCode::Esc => {
-                                    app.approvals.deny_modal_open = false;
-                                    app.approvals.deny_reason.clear();
+                                    app.reduce(AppEvent::Approval(
+                                        crate::tui::approvals_pane::ApprovalEvent::DenyModalClosed,
+                                    ));
                                 }
                                 crossterm::event::KeyCode::Char(c) => {
                                     app.approvals.deny_reason.push(c);

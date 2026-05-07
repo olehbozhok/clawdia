@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod approvals_pane;
 pub mod chat_pane;
 pub mod keymap;

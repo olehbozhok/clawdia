@@ -1,7 +1,15 @@
 use tracing_appender::{non_blocking, rolling};
 use tracing_subscriber::{prelude::*, EnvFilter};
 
-pub struct AppenderGuard(pub tracing_appender::non_blocking::WorkerGuard);
+pub struct AppenderGuard {
+    _guard: tracing_appender::non_blocking::WorkerGuard,
+}
+
+impl AppenderGuard {
+    fn new(guard: tracing_appender::non_blocking::WorkerGuard) -> Self {
+        Self { _guard: guard }
+    }
+}
 
 pub fn init_tracing(
     log_tx: tokio::sync::mpsc::UnboundedSender<crate::tui::log_layer::LogLine>,
@@ -24,7 +32,7 @@ pub fn init_tracing(
         );
 
     registry.try_init().map_err(|e| anyhow::anyhow!("tracing init: {e}"))?;
-    Ok(AppenderGuard(guard))
+    Ok(AppenderGuard::new(guard))
 }
 
 #[cfg(test)]

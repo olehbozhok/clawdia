@@ -10,12 +10,10 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Clone)]
 pub struct Ticket {
     pub id: String,
-    #[allow(dead_code)]
     pub session_id: SessionId,
     pub action_kind: String,
     pub args: serde_json::Value,
     pub reason: String,
-    #[allow(dead_code)]
     pub hint: Option<String>,
     pub expires_at: Instant,
 }
@@ -131,12 +129,16 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ApprovalsState, focused: bo
     frame.render_widget(list_para, chunks[0]);
 
     if let Some(ticket) = state.pending.get(state.selected) {
+        let ttl = state.remaining_for(&ticket.id, Instant::now());
+        let mins = ttl.as_secs() / 60;
+        let secs = ttl.as_secs() % 60;
+        let hint_line = ticket.hint.as_deref().map(|h| format!("\nHint: {h}")).unwrap_or_default();
         let detail_text = format!(
-            "Action: {}\nReason: {}\nArgs: {}\nTTL: {:?}",
+            "Action: {}\nSession: {}\nReason: {}\nArgs: {}{hint_line}\nTTL: {mins:02}:{secs:02}",
             ticket.action_kind,
+            ticket.session_id.as_str(),
             ticket.reason,
             serde_json::to_string_pretty(&ticket.args).unwrap_or_default(),
-            ticket.expires_at.saturating_duration_since(Instant::now()),
         );
         let detail_para = Paragraph::new(detail_text).block(
             Block::default().title("Detail").borders(Borders::ALL),

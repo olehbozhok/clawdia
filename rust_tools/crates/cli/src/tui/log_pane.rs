@@ -76,7 +76,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &LogState, focused: bool) {
         .take(inner.height as usize)
         .map(|l| {
             let color = severity_color(&l.level);
-            let preview: String = l.message.chars().take(inner.width as usize).collect();
+            let ts = l.at.duration_since(std::time::UNIX_EPOCH)
+                .map(|d| format!("{:>10.3}", d.as_secs_f64()))
+                .unwrap_or_default();
+            let raw = format!("{ts} {target} {msg}", target = l.target, msg = l.message);
+            let preview: String = raw.chars().take(inner.width as usize).collect();
             Line::from(Span::styled(preview, Style::default().fg(color)))
         })
         .collect();

@@ -63,7 +63,7 @@ fn render_chat_msg<'a>(msg: &'a ChatMsg, width: usize) -> Line<'a> {
                 Style::default().fg(Color::Blue),
             ))
         }
-        ChatMsg::Notify { severity, subject, body: _ } => {
+        ChatMsg::Notify { severity, subject, body } => {
             let (color, modifier) = severity_color(severity);
             let prefix = match severity {
                 Severity::Info => "[INFO]",
@@ -71,9 +71,13 @@ fn render_chat_msg<'a>(msg: &'a ChatMsg, width: usize) -> Line<'a> {
                 Severity::Error => "[ERROR]",
                 Severity::Blocker => "[BLOCKER]",
             };
-            let preview = truncate_for_width(subject, width.saturating_sub(10));
+            let detail = if body.is_empty() {
+                truncate_for_width(subject, width.saturating_sub(10))
+            } else {
+                truncate_for_width(&format!("{subject}: {body}"), width.saturating_sub(10))
+            };
             Line::from(Span::styled(
-                format!("{prefix} {preview}"),
+                format!("{prefix} {detail}"),
                 Style::default().fg(color).add_modifier(modifier),
             ))
         }

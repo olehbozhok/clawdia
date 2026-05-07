@@ -1,11 +1,15 @@
+use std::collections::HashSet;
+use std::sync::Arc;
+use std::time::Instant;
+
 use runtime::approvals::outcome::{ApprovalOutcome, ApproverIdentity, ApproverKind};
-use runtime::approvals::types::TicketId;
+use runtime::approvals::types::{Ticket as RuntimeTicket, TicketId, TicketStatus};
 use runtime::persistence::notifications::NotificationStore;
 use runtime::persistence::{Inbox, SessionStore};
 use runtime::sessions::SessionId;
-use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 
+use super::approvals_pane::{ApprovalEvent, Ticket};
 use super::chat_pane::ChatMsg;
 use super::keymap::ApprovalChoice;
 use super::AppEvent;
@@ -16,10 +20,21 @@ pub struct RuntimeGlue {
     pub sessions: Arc<dyn SessionStore>,
     pub inbox: Arc<dyn Inbox>,
     pub notifications: Arc<dyn NotificationStore>,
-    pub hmac_key: Arc<Vec<u8>>,
     pub local_key_id: String,
     pub local_roles: Vec<String>,
     pub root_session: SessionId,
+}
+
+fn to_tui_ticket(rt: &RuntimeTicket) -> Ticket {
+    Ticket {
+        id: rt.id.0.clone(),
+        session_id: rt.session_id.clone(),
+        action_kind: rt.action_kind.clone(),
+        args: rt.args.clone(),
+        reason: rt.reason.clone(),
+        hint: rt.hint.clone(),
+        expires_at: rt.expires_at,
+    }
 }
 
 impl RuntimeGlue {
@@ -30,6 +45,11 @@ impl RuntimeGlue {
     ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             let mut notif_rx = self.notifications.subscribe();
+            let mut poll_ticker =
+                tokio::time::interval(std::time::Duration::from_millis(500));
+            let mut known_sessions: HashSet<String> = HashSet::new();
+            let mut last_tickets: Vec<String> = Vec::new();
+
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => break,
@@ -46,6 +66,46 @@ impl RuntimeGlue {
                                 tracing::warn!("notifications: skipped {n} lagged messages");
                             }
                             Err(_) => break,
+                        }
+                    }
+                    _ = poll_ticker.tick() => {
+                        // Poll pending tickets for root session
+                        if let Ok(all) = self.gateway.ticket_store().list_by_session(&self.root_session) {
+                            let pending: Vec<Ticket> = all.iter()
+                                .filter(|t| t.status == TicketStatus::Pending)
+                                .filter(|t| t.expires_at > Instant::now())
+                                .map(to_tui_ticket)
+                                .collect();
+                            let ids: Vec<String> = pending.iter().map(|t| t.id.clone()).collect();
+                            if ids != last_tickets {
+                                last_tickets = ids;
+                                let _ = tx.send(AppEvent::Approval(ApprovalEvent::SetPending(pending)));
+                            }
+                        }
+
+                        // Poll active sessions to detect spawn/finish
+                        if let Ok(active) = self.sessions.list_active().await {
+                            let current: HashSet<String> = active.iter()
+                                .map(|s| s.id.as_str().to_string())
+                                .collect();
+                            for id in &current {
+                                if !known_sessions.contains(id) && id != self.root_session.as_str() {
+                                    let _ = tx.send(AppEvent::Chat(ChatMsg::SubAgentSpawn {
+                                        label: "sub-agent".into(),
+                                        child: id.clone(),
+                                    }));
+                                }
+                            }
+                            for id in &known_sessions {
+                                if !current.contains(id) {
+                                    let _ = tx.send(AppEvent::Chat(ChatMsg::SubAgentFinish {
+                                        label: "sub-agent".into(),
+                                        child: id.clone(),
+                                        outcome: "done".into(),
+                                    }));
+                                }
+                            }
+                            known_sessions = current;
                         }
                     }
                 }
@@ -114,7 +174,6 @@ mod tests {
             sessions,
             inbox,
             notifications: notifications.clone(),
-            hmac_key: Arc::new(vec![]),
             local_key_id: "local".into(),
             local_roles: vec!["campaign_owner".into()],
             root_session: root,

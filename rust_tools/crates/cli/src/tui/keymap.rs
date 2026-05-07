@@ -17,7 +17,6 @@ pub enum Action {
     SelectPrev,
     ApprovalDecide(ApprovalChoice),
     OpenDenyModal,
-    SubmitDenyReason(String),
     SubmitChat(String),
     InputChar(char),
     InputBackspace,
