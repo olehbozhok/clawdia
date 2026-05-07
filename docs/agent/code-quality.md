@@ -1,5 +1,6 @@
 # Code Quality
 
+- **No corner-cutting.** This code runs in production. Every feature, error path, edge case, and test specified in the plan must exist. Replacing a planned component with a simpler one without justification is not acceptable. Deferring functionality that the plan explicitly includes (e.g. "d deny opens a reason modal") requires the user's approval.
 - Follow best practices for the language being used (idiomatic Rust, Pythonic Python, etc.).
 - Always evaluate whether a piece of functionality should be extracted into a separate module, function, or file. Consider separation of concerns, reusability, and readability.
 - Keep functions and modules focused on a single responsibility.

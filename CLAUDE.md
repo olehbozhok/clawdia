@@ -11,6 +11,13 @@ Clawdia Schiffer is a policy-governed AI activist agent that researches, verifie
 - When creating `.env` files, always use placeholder values like `your-key-here`.
 - If you need to reference environment variables, refer to them by name only (e.g. `DEEPSEEK_API_KEY`), never by value.
 
+## Behaviour
+
+- **This is a real production application.** Every feature, test, error path, and edge case must be fully implemented according to the plan and design doc. Cutting corners — skipping features, substituting simpler implementations without justification, leaving dead code paths, or deferring functionality without explicit approval — is not acceptable.
+- **Follow the plan exactly.** If a plan specifies an approach (e.g. a specific library, data structure, or API), use that approach. If you believe a deviation is necessary, stop and explain the trade-off before proceeding. Do not silently substitute.
+- **Re-read this file and `docs/agent/*.md` periodically**, especially at the start of a work session and after any interruption. The rules here are load-bearing — forgetting them leads to costly rework.
+- **Flag every intentional deviation** from a plan or design doc in your response, with the reason. Do not assume small deviations are acceptable.
+
 ## Detailed Rules
 
 See `docs/agent/*.md` for detailed guidelines:
