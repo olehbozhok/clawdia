@@ -7,5 +7,6 @@ pub mod mcp;
 pub mod notifications;
 pub mod persistence;
 pub mod policy_prompt;
+pub mod runtime;
 pub mod sessions;
 pub mod sub_agent;
