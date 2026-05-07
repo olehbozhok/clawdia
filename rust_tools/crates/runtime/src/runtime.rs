@@ -54,7 +54,7 @@ pub fn build_runtime(
     local_key_id: &str,
     local_roles: &str,
     authz_backend: AuthzBackend,
-) -> (Runtime, CancellationToken, JoinSet<()>) {
+) -> anyhow::Result<(Runtime, CancellationToken, JoinSet<()>)> {
     let cancel = CancellationToken::new();
     let set = JoinSet::new();
 
@@ -87,7 +87,7 @@ pub fn build_runtime(
 
     let audit_log = Arc::new(AuditLog::new());
 
-    (
+    Ok((
         Runtime {
             gateway,
             session_store,
@@ -105,5 +105,5 @@ pub fn build_runtime(
         },
         cancel,
         set,
-    )
+    ))
 }

@@ -27,7 +27,7 @@ pub enum ChatMsg {
 #[derive(Debug, Default)]
 pub struct ChatState {
     pub history: Vec<ChatMsg>,
-    pub input: String,
+    pub input: tui_input::Input,
     pub scroll: u16,
 }
 
@@ -110,7 +110,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ChatState, focused: bool) {
     let history_para = Paragraph::new(lines).scroll((state.scroll, 0));
     frame.render_widget(history_para, chunks[0]);
 
-    let input_text: String = state.input.chars().take(chunks[1].width as usize).collect();
+    let input_text: String = state.input.value().chars().take(chunks[1].width as usize).collect();
     let input_para = Paragraph::new(input_text)
         .style(if focused { Style::default() } else { Style::default().dim() });
     frame.render_widget(input_para, chunks[1]);

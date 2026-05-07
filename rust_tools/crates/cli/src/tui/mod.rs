@@ -80,6 +80,10 @@ impl App {
                     approvals_pane::ApprovalEvent::SelectPrev => {
                         self.approvals.select_prev();
                     }
+                    approvals_pane::ApprovalEvent::DenyModalClosed => {
+                        self.approvals.deny_modal_open = false;
+                        self.approvals.deny_reason.clear();
+                    }
                 }
             }
             AppEvent::Key(_) => {}

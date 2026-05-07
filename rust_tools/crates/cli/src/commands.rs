@@ -69,7 +69,7 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
         &args.local_key_id,
         &args.local_roles,
         backend,
-    );
+    )?;
 
     let sid = runtime
         .session_store
@@ -146,6 +146,34 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
             Some(event) = event_rx.recv() => {
                 match event {
                     AppEvent::Key(key) => {
+                        // If deny modal is open, capture input directly
+                        if app.approvals.deny_modal_open {
+                            match key.code {
+                                crossterm::event::KeyCode::Enter => {
+                                    let id = app.approvals.selected_id().map(|s| s.to_string());
+                                    if let Some(id_str) = id {
+                                        let reason = std::mem::take(&mut app.approvals.deny_reason);
+                                        let tid = runtime::approvals::types::TicketId(id_str);
+                                        let choice = crate::tui::keymap::ApprovalChoice::Deny { reason };
+                                        let _ = glue.approve(&tid, choice).await;
+                                    }
+                                    app.approvals.deny_modal_open = false;
+                                }
+                                crossterm::event::KeyCode::Esc => {
+                                    app.approvals.deny_modal_open = false;
+                                    app.approvals.deny_reason.clear();
+                                }
+                                crossterm::event::KeyCode::Char(c) => {
+                                    app.approvals.deny_reason.push(c);
+                                }
+                                crossterm::event::KeyCode::Backspace => {
+                                    app.approvals.deny_reason.pop();
+                                }
+                                _ => {}
+                            }
+                            continue;
+                        }
+
                         let action = keymap::dispatch(app.focus, key);
                         match action {
                             Action::Quit => {
@@ -172,18 +200,18 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
                                 }
                             }
                             Action::InputChar(c) => {
-                                app.chat.input.push(c);
+                                app.chat.input.handle(tui_input::InputRequest::InsertChar(c));
                             }
                             Action::InputBackspace => {
-                                app.chat.input.pop();
+                                app.chat.input.handle(tui_input::InputRequest::DeletePrevChar);
                             }
                             Action::SubmitChat(_) => {
-                                let text = app.chat.input.clone();
+                                let text = app.chat.input.value().to_string();
                                 if !text.is_empty() {
                                     app.chat.history.push(
                                         crate::tui::chat_pane::ChatMsg::User(text.clone()),
                                     );
-                                    app.chat.input.clear();
+                                    app.chat.input = tui_input::Input::default();
                                     match orch.agent.prompt(&text).await {
                                         Ok(response) => {
                                             app.chat.history.push(
@@ -200,10 +228,14 @@ pub async fn chat(args: &ChatArgs) -> anyhow::Result<()> {
                                 }
                             }
                             Action::ApprovalDecide(choice) => {
-                                if let Some(id) = app.approvals.selected_id() {
-                                    let tid = runtime::approvals::types::TicketId(id.to_string());
+                                let id = app.approvals.selected_id().map(|s| s.to_string());
+                                if let Some(id_str) = id {
+                                    let tid = runtime::approvals::types::TicketId(id_str);
                                     let _ = glue.approve(&tid, choice).await;
                                 }
+                            }
+                            Action::OpenDenyModal => {
+                                app.approvals.deny_modal_open = true;
                             }
                             _ => {}
                         }

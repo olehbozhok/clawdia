@@ -24,6 +24,8 @@ pub struct Ticket {
 pub struct ApprovalsState {
     pub pending: Vec<Ticket>,
     pub selected: usize,
+    pub deny_modal_open: bool,
+    pub deny_reason: String,
 }
 
 #[derive(Debug)]
@@ -31,6 +33,7 @@ pub enum ApprovalEvent {
     SetPending(Vec<Ticket>),
     SelectNext,
     SelectPrev,
+    DenyModalClosed,
 }
 
 impl ApprovalsState {
@@ -82,6 +85,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &ApprovalsState, focused: bo
         .border_style(border_style);
 
     let inner = block.inner(area);
+
+    if state.deny_modal_open {
+        let modal_text = format!(
+            "Reason for denial:\n{}\n\n[Enter] submit  [Esc] cancel",
+            state.deny_reason
+        );
+        let para = Paragraph::new(modal_text).block(
+            Block::default().title(" Deny ").borders(Borders::ALL),
+        );
+        frame.render_widget(para, area);
+        return;
+    }
 
     if state.pending.is_empty() {
         let para = Paragraph::new(Line::from(Span::raw("No pending approvals")))
